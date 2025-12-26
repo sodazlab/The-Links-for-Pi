@@ -5,44 +5,29 @@ let initPromise: Promise<boolean> | null = null;
 
 export const PiService = {
   /**
-   * Waits for window.Pi to be available in the DOM.
-   */
-  ensurePiReady: async (retries = 50): Promise<boolean> => {
-    if (window.Pi) return true;
-    if (retries === 0) return false;
-    // Wait 100ms and try again
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return PiService.ensurePiReady(retries - 1);
-  },
-
-  /**
    * Initializes the Pi SDK.
-   * Uses a singleton pattern to ensure Pi.init is called EXACTLY once.
+   * strictly follows: https://github.com/pi-apps/pi-platform-docs/blob/master/SDK_reference.md
    */
   init: (): Promise<boolean> => {
     if (initPromise) return initPromise;
 
     initPromise = (async () => {
       try {
-        console.log("Initializing Pi SDK...");
-        
-        const isReady = await PiService.ensurePiReady();
-        if (!isReady) {
-          // Critical Failure: SDK script not loaded
-          alert("CRITICAL ERROR: 'window.Pi' is undefined. The Pi Network SDK script failed to load. Check internet connection.");
-          return false;
+        if (!window.Pi) {
+          throw new Error("Pi SDK script is not loaded. Ensure <script src='https://sdk.minepi.com/pi-sdk.js'> is in index.html");
         }
 
+        console.log("Initializing Pi SDK (v2.0)...");
+
         // Initialize SDK
+        // sandbox: true is recommended for development. 
         await window.Pi.init({ version: '2.0', sandbox: true });
         
-        console.log('Pi SDK Initialized successfully');
+        console.log('Pi SDK Initialized.');
         return true;
       } catch (err: any) {
         console.error('Pi SDK Init Error:', err);
-        // Alert the specific init error
-        alert(`Init Error: ${err.message || JSON.stringify(err)}`);
-        
+        // Let the caller handle the alert to avoid spamming on load
         initPromise = null;
         return false;
       }
@@ -53,34 +38,44 @@ export const PiService = {
 
   authenticate: async (): Promise<PiAuthResult | null> => {
     try {
-      // 1. Ensure Init is complete
+      // 1. Ensure Init
       const initialized = await PiService.init();
       if (!initialized) {
-        throw new Error("Pi SDK init failed (returned false).");
+        throw new Error("SDK initialization failed. Check internet connection or ad blockers.");
       }
 
-      // Paranoid check before calling authenticate
       if (!window.Pi) {
-        throw new Error("window.Pi disappeared unexpectedly.");
+        throw new Error("window.Pi is undefined despite initialization.");
       }
 
-      console.log('Requesting authentication...');
+      // 2. Debugging Helper
+      console.log("Current Window URL:", window.location.href);
+
+      // 3. Authenticate
+      // FIX: Removed 'payments' scope. 
+      // Requesting 'payments' without full portal configuration often causes the auth window to fail silently.
+      // We only request 'username' first to ensure connectivity.
+      const scopes = ['username']; 
       
-      const scopes = ['username', 'payments'];
-      
-      // 2. Authenticate
+      console.log("Calling window.Pi.authenticate with scopes:", scopes);
+
+      // Standard call according to docs
       const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
       
       console.log('Authentication successful:', authResult);
       return authResult as PiAuthResult;
 
     } catch (err: any) {
-      // Just rethrow, letting AuthContext handle the alert display
+      console.error("Authentication Error Details:", err);
+      // The error will be caught and alerted by authContext.tsx
       throw err; 
     }
   }
 };
 
+/**
+ * Handler for incomplete payments.
+ */
 function onIncompletePaymentFound(payment: any) {
   console.log('Incomplete payment found:', payment);
 }
