@@ -90,7 +90,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
       case 'youtube': 
         return 'bg-gradient-to-br from-[#ff0000] via-[#c40404] to-[#282828]';
       case 'x': 
-        return 'bg-gradient-to-br from-[#14171A] via-[#000000] to-[#657786]';
+        // Changed from black-heavy gradient to a lighter charcoal/slate gradient for better contrast
+        return 'bg-gradient-to-br from-[#525252] via-[#2d2d2d] to-[#0a0a0a]';
       case 'threads': 
         return 'bg-gradient-to-br from-[#000000] via-[#1a1a1a] to-[#333333]'; 
       case 'instagram': 
