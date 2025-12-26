@@ -28,20 +28,21 @@ export const PiService = {
         
         const isReady = await PiService.ensurePiReady();
         if (!isReady) {
-          console.error("Pi SDK script missing or failed to load.");
+          // Critical Failure: SDK script not loaded
+          alert("CRITICAL ERROR: 'window.Pi' is undefined. The Pi Network SDK script failed to load. Check internet connection.");
           return false;
         }
 
         // Initialize SDK
-        // IMPORTANT: 'sandbox: true' is required for testing. 
-        // Ensure your Pi Developer Portal 'Development URL' matches your current URL exactly.
         await window.Pi.init({ version: '2.0', sandbox: true });
         
         console.log('Pi SDK Initialized successfully');
         return true;
       } catch (err: any) {
         console.error('Pi SDK Init Error:', err);
-        // Reset promise so we can try again if it fails
+        // Alert the specific init error
+        alert(`Init Error: ${err.message || JSON.stringify(err)}`);
+        
         initPromise = null;
         return false;
       }
@@ -55,31 +56,26 @@ export const PiService = {
       // 1. Ensure Init is complete
       const initialized = await PiService.init();
       if (!initialized) {
-        throw new Error("Pi SDK could not be initialized.");
+        throw new Error("Pi SDK init failed (returned false).");
       }
 
-      console.log('Requesting authentication (following official docs)...');
+      // Paranoid check before calling authenticate
+      if (!window.Pi) {
+        throw new Error("window.Pi disappeared unexpectedly.");
+      }
+
+      console.log('Requesting authentication...');
       
       const scopes = ['username', 'payments'];
       
-      // 2. Authenticate directly without artificial timeout
-      // Reference: https://github.com/pi-apps/pi-platform-docs/blob/master/authentication.md
+      // 2. Authenticate
       const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
       
       console.log('Authentication successful:', authResult);
       return authResult as PiAuthResult;
 
     } catch (err: any) {
-      console.error('Pi Auth Failed:', err);
-      
-      // Handle common Pi SDK errors
-      if (err?.message) {
-         if (err.message.includes("user cancelled")) {
-           console.warn("User cancelled the auth dialog.");
-         }
-      }
-      
-      // Re-throw or return null depending on how you want to handle it in UI
+      // Just rethrow, letting AuthContext handle the alert display
       throw err; 
     }
   }
@@ -87,7 +83,4 @@ export const PiService = {
 
 function onIncompletePaymentFound(payment: any) {
   console.log('Incomplete payment found:', payment);
-  // Per docs: "You must handle this callback to complete the payment."
-  // Since this is a linking app, we just log it for now.
-  // If you add payments later, implement the completion logic here.
 }

@@ -42,13 +42,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (e: any) {
       console.error("Login Context Error", e);
-      // Show a more helpful alert based on common issues
-      const msg = e?.message || "";
-      if (msg.includes("user cancelled")) {
-        alert("Login cancelled.");
-      } else {
-        alert(`Authentication failed. \n\nTip: If you are the developer, please ensure your "Development URL" in the Pi Portal matches this URL exactly.\n\nError: ${msg}`);
+      
+      // DEBUG: Force alert everything to identify why the window is not opening
+      let errorMessage = "Unknown Error";
+
+      if (typeof e === 'string') {
+        errorMessage = e;
+      } else if (e instanceof Error) {
+        // Standard JS Errors usually stringify to {}, so we access properties directly
+        errorMessage = `[Error Object] Name: ${e.name}\nMessage: ${e.message}\nStack: ${e.stack}`;
+      } else if (typeof e === 'object') {
+        // Try to stringify, but handle circular references or empty objects
+        try {
+          errorMessage = `[Object]: ${JSON.stringify(e, null, 2)}`;
+        } catch (jsonErr) {
+          errorMessage = `[Object] (Not stringifiable)`;
+        }
       }
+
+      alert(`DEBUG ERROR:\n\n${errorMessage}`);
     }
   };
 
