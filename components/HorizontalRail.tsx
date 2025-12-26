@@ -13,7 +13,7 @@ const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
     <div className="w-full border-t border-b border-white/5 bg-white/[0.02]">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
-        <div className="flex items-center justify-between px-6 md:px-8 pt-8">
+        <div className="flex items-center justify-between px-6 md:px-8 pt-8 mb-2">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Trophy className="text-yellow-500 w-5 h-5" />
             {title}
@@ -22,29 +22,39 @@ const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
         </div>
         
         {/* 
-          Scroll Container Area 
-          - Removed negative margins that caused boundary clipping issues.
-          - py-12 (48px): Provides massive vertical safe area for badges (-12px) + Hover Scale + Shadows.
-          - pl-6 / md:pl-8: Ensures the first card's badge (-left-3) is visually inside the screen.
-          - space-x-6: More breathing room between cards.
+          Scroll Container 
+          - pb-10: Provides space for bottom shadows and hover effects
+          - px-6: Outer padding for the rail start/end
         */}
         <div className="relative w-full">
-          <div className="flex overflow-x-auto py-12 px-6 md:px-8 space-x-6 scrollbar-hide snap-x no-scrollbar">
+          <div className="flex overflow-x-auto pb-10 px-6 md:px-8 scrollbar-hide snap-x no-scrollbar">
             {posts.map((post, index) => (
-              <div key={post.id} className="snap-start flex-shrink-0 w-[280px] h-[340px] relative mt-2 ml-2">
-                {/* Rank Badge - Positioned absolutely relative to this wrapper */}
-                <div className="absolute -top-4 -left-4 z-30 w-9 h-9 rounded-full bg-yellow-500 text-black font-extrabold text-sm flex items-center justify-center border-4 border-[#0f0f12] shadow-lg">
-                  {index + 1}
+              // Wrapper Div: acts as a buffer zone.
+              // pl-5 pt-5: Pushes the inner card down/right, creating "internal" space for the absolute badge.
+              // This ensures the badge is technically "inside" this div, so overflow-auto won't clip it.
+              <div 
+                key={post.id} 
+                className="snap-start flex-shrink-0 relative pl-5 pt-5 pr-3"
+              >
+                {/* 
+                  Container for Card + Badge 
+                  Width reduced to 260px to fit ~5 items on standard 1280px screens 
+                */}
+                <div className="w-[260px] h-[320px] relative group">
+                  
+                  {/* Rank Badge: Positioned at the top-left of the WRAPPER's padding area */}
+                  <div className="absolute -top-3 -left-3 z-30 w-8 h-8 rounded-full bg-yellow-500 text-black font-extrabold text-sm flex items-center justify-center border-2 border-[#0f0f12] shadow-lg transform group-hover:-translate-y-1 transition-transform duration-300">
+                    {index + 1}
+                  </div>
+                  
+                  <PostCard post={post} variant="standard" className="h-full shadow-lg" />
                 </div>
-                
-                {/* Post Card */}
-                <PostCard post={post} variant="standard" className="h-full shadow-xl" />
               </div>
             ))}
           </div>
           
-          {/* Fade Overlay - Visual cue for scrolling */}
-          <div className="absolute top-0 right-0 h-full w-24 bg-gradient-to-l from-[#0f0f12] via-[#0f0f12]/50 to-transparent pointer-events-none z-20" />
+          {/* Fade Overlay - Right side only */}
+          <div className="absolute top-0 right-0 h-full w-24 bg-gradient-to-l from-[#0f0f12] via-[#0f0f12]/40 to-transparent pointer-events-none z-20" />
         </div>
       </div>
     </div>
