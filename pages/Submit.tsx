@@ -18,12 +18,13 @@ const Submit: React.FC = () => {
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setUrl(val);
+    const lowerVal = val.toLowerCase();
     
-    if (val.includes('youtube.com') || val.includes('youtu.be')) setDetectedCategory('youtube');
-    else if (val.includes('twitter.com') || val.includes('x.com')) setDetectedCategory('x');
-    else if (val.includes('threads.net')) setDetectedCategory('threads');
-    else if (val.includes('instagram.com')) setDetectedCategory('instagram');
-    else if (val.includes('medium.com') || val.includes('blog')) setDetectedCategory('article');
+    if (lowerVal.includes('youtube.com') || lowerVal.includes('youtu.be')) setDetectedCategory('youtube');
+    else if (lowerVal.includes('twitter.com') || lowerVal.includes('x.com')) setDetectedCategory('x');
+    else if (lowerVal.includes('threads.net') || lowerVal.includes('threads.com')) setDetectedCategory('threads');
+    else if (lowerVal.includes('instagram.com')) setDetectedCategory('instagram');
+    else if (lowerVal.includes('medium.com') || lowerVal.includes('blog') || lowerVal.includes('dev.to')) setDetectedCategory('article');
     else setDetectedCategory('other');
   };
 
@@ -88,7 +89,7 @@ const Submit: React.FC = () => {
           
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-300">Link URL</label>
-            <div className="relative">
+            <div className="flex flex-col gap-3">
               <input 
                 type="url" 
                 required
@@ -97,8 +98,15 @@ const Submit: React.FC = () => {
                 placeholder="https://..."
                 className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition"
               />
-              <div className="absolute right-3 top-3">
-                <span className="text-xs uppercase bg-white/10 px-2 py-1 rounded text-gray-400 font-bold">
+              
+              {/* Category Indicator - Moved out of input */}
+              <div className="flex items-center gap-2 animate-fade-in">
+                <span className="text-sm text-gray-500">Detected Category:</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border transition-all duration-300 ${
+                  detectedCategory !== 'other' 
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.2)]' 
+                    : 'bg-white/5 text-gray-500 border-white/10'
+                }`}>
                   {detectedCategory === 'x' ? 'X (Twitter)' : detectedCategory}
                 </span>
               </div>
