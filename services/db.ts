@@ -53,22 +53,24 @@ export const db = {
     }));
   },
 
-  // Fetch pending posts for admin
-  getPendingPosts: async (): Promise<Post[]> => {
+  // Fetch posts by specific status (Admin usage)
+  getPostsByStatus: async (status: PostStatus): Promise<Post[]> => {
     if (!isConfigured) {
       // Mock Mode
       const posts = getMockPosts();
-      return posts.filter(p => p.status === 'pending');
+      return posts
+        .filter(p => p.status === status)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
     const { data, error } = await supabase
       .from('posts')
       .select('*')
-      .eq('status', 'pending')
+      .eq('status', status)
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching pending posts:', error.message || error);
+      console.error(`Error fetching ${status} posts:`, error.message || error);
       return [];
     }
     
@@ -80,6 +82,11 @@ export const db = {
       createdAt: p.created_at,
       imageUrl: p.image_url
     }));
+  },
+
+  // Fetch pending posts (Deprecated in favor of getPostsByStatus, kept for backward compat if needed)
+  getPendingPosts: async (): Promise<Post[]> => {
+    return db.getPostsByStatus('pending');
   },
 
   // Create a new post
