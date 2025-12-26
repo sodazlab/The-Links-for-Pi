@@ -17,17 +17,17 @@ export const PiService = {
           throw new Error("Pi SDK script is not loaded. Ensure <script src='https://sdk.minepi.com/pi-sdk.js'> is in index.html");
         }
 
-        console.log("Initializing Pi SDK (v2.0)...");
+        console.log("Initializing Pi SDK (v2.0) in SANDBOX mode...");
 
-        // Initialize SDK
-        // sandbox: true is recommended for development. 
+        // FORCE SANDBOX MODE: true
+        // This is critical for testing without fully approved domain SSL or on Localhost
         await window.Pi.init({ version: '2.0', sandbox: true });
         
-        console.log('Pi SDK Initialized.');
+        console.log('Pi SDK Initialized (Sandbox: ON).');
         return true;
       } catch (err: any) {
         console.error('Pi SDK Init Error:', err);
-        // Let the caller handle the alert to avoid spamming on load
+        alert(`Pi SDK Init Failed: ${err.message}`);
         initPromise = null;
         return false;
       }
@@ -52,9 +52,8 @@ export const PiService = {
       console.log("Current Window URL:", window.location.href);
 
       // 3. Authenticate
-      // FIX: Removed 'payments' scope. 
-      // Requesting 'payments' without full portal configuration often causes the auth window to fail silently.
-      // We only request 'username' first to ensure connectivity.
+      // CRITICAL FIX: Only request 'username' in Sandbox/Dev mode.
+      // Requesting 'payments' without a fully configured App on the Portal causes the auth window to fail silently.
       const scopes = ['username']; 
       
       console.log("Calling window.Pi.authenticate with scopes:", scopes);
