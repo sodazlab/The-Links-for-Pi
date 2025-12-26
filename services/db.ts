@@ -177,6 +177,10 @@ export const db = {
       return { error: null };
     }
 
+    // 1. First delete related likes to avoid Foreign Key Constraint errors
+    await supabase.from('likes').delete().eq('post_id', postId);
+
+    // 2. Then delete the post
     const { error } = await supabase
       .from('posts')
       .delete()

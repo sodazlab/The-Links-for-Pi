@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../services/authContext';
 import { db } from '../services/db';
 import { Post, PostStatus } from '../types';
-import { Check, X, Clock, KeyRound, Loader2, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Check, X, Clock, KeyRound, Loader2, Trash2, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
 
 const Admin: React.FC = () => {
   const { user, loginAsAdmin } = useAuth();
@@ -29,7 +29,7 @@ const Admin: React.FC = () => {
   };
 
   const handleStatusChange = async (id: string, newStatus: PostStatus) => {
-    // Optimistic update
+    // Optimistic update: Remove immediately from current view
     setPosts(prev => prev.filter(p => p.id !== id));
     
     const error = await db.updatePostStatus(id, newStatus);
@@ -42,13 +42,14 @@ const Admin: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to permanently delete this post?")) return;
 
-    // Optimistic update
+    // Optimistic update: Remove immediately from UI
     setPosts(prev => prev.filter(p => p.id !== id));
     
     const { error } = await db.deletePost(id);
     if (error) {
-      alert("Failed to delete post");
-      loadPosts();
+      console.error("Delete failed", error);
+      alert("Failed to delete post from database.");
+      loadPosts(); // Revert UI if failed
     }
   };
 
@@ -113,17 +114,17 @@ const Admin: React.FC = () => {
 
   // 3. Render Dashboard with Tabs
   return (
-    <div className="max-w-6xl mx-auto p-6 animate-fade-in-up">
-      <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-        <h1 className="text-2xl font-bold text-white">Content Management</h1>
+    <div className="max-w-5xl mx-auto p-4 md:p-6 animate-fade-in-up">
+      <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+        <h1 className="text-2xl font-bold text-white">Content Admin</h1>
         
         {/* Status Tabs */}
-        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 w-full md:w-auto overflow-x-auto">
           {(['pending', 'approved', 'rejected'] as PostStatus[]).map((status) => (
             <button
               key={status}
               onClick={() => setActiveTab(status)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
+              className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize whitespace-nowrap ${
                 activeTab === status 
                   ? 'bg-purple-600 text-white shadow-lg' 
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -135,7 +136,7 @@ const Admin: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-3">
         {loading ? (
            <div className="p-12 text-center">
              <Loader2 className="w-8 h-8 text-purple-500 animate-spin mx-auto" />
@@ -151,49 +152,49 @@ const Admin: React.FC = () => {
           </div>
         ) : (
           posts.map(post => (
-            <div key={post.id} className="bg-[#1e1e24] border border-white/10 p-4 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group hover:border-white/20 transition">
+            <div key={post.id} className="bg-[#1e1e24] border border-white/10 p-3 rounded-xl flex items-center justify-between gap-3 group hover:border-white/20 transition">
               
-              <div className="flex items-start gap-4 flex-1 overflow-hidden">
-                <div className={`w-12 h-12 rounded-lg flex-shrink-0 flex items-center justify-center ${
+              {/* Left Side: Icon & Content */}
+              <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
+                <div className={`w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center ${
                     activeTab === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
                     activeTab === 'approved' ? 'bg-green-500/10 text-green-500' :
                     'bg-red-500/10 text-red-500'
                 }`}>
-                  {activeTab === 'pending' && <Clock className="w-6 h-6" />}
-                  {activeTab === 'approved' && <CheckCircle className="w-6 h-6" />}
-                  {activeTab === 'rejected' && <AlertTriangle className="w-6 h-6" />}
+                  {activeTab === 'pending' && <Clock className="w-5 h-5" />}
+                  {activeTab === 'approved' && <CheckCircle className="w-5 h-5" />}
+                  {activeTab === 'rejected' && <AlertTriangle className="w-5 h-5" />}
                 </div>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-white text-lg truncate pr-4">{post.title}</h3>
-                  <a href={post.url} target="_blank" rel="noreferrer" className="text-blue-400 text-sm hover:underline block mb-1 truncate">
-                    {post.url}
-                  </a>
-                  <p className="text-gray-400 text-sm line-clamp-1">{post.description}</p>
-                  <div className="flex gap-2 mt-2">
-                    <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-gray-400 uppercase">{post.category}</span>
-                    <span className="text-xs text-gray-500 py-0.5">by {post.username}</span>
+                
+                <div className="min-w-0 flex flex-col justify-center">
+                  <h3 className="font-bold text-white text-sm md:text-base truncate leading-tight mb-0.5">{post.title}</h3>
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <span className="uppercase bg-white/5 px-1.5 rounded border border-white/5">{post.category}</span>
+                    <span className="truncate max-w-[100px] md:max-w-[200px]">{post.description}</span>
                   </div>
+                  <a href={post.url} target="_blank" rel="noreferrer" className="text-blue-400 text-xs hover:underline truncate block mt-0.5 flex items-center gap-1 opacity-70 hover:opacity-100">
+                    <ExternalLink size={10} /> {post.url}
+                  </a>
                 </div>
               </div>
 
-              <div className="flex gap-2 w-full md:w-auto shrink-0">
-                {/* Actions based on Active Tab */}
-                
+              {/* Right Side: Actions (Compact Buttons) */}
+              <div className="flex items-center gap-2 shrink-0">
                 {activeTab === 'pending' && (
                   <>
                     <button 
                       onClick={() => handleStatusChange(post.id, 'rejected')}
-                      className="flex-1 md:flex-none px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition flex items-center justify-center gap-2"
+                      className="w-9 h-9 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition flex items-center justify-center"
                       title="Reject"
                     >
-                      <X size={18} /> <span className="md:hidden lg:inline">Reject</span>
+                      <X size={18} />
                     </button>
                     <button 
                       onClick={() => handleStatusChange(post.id, 'approved')}
-                      className="flex-1 md:flex-none px-4 py-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 transition flex items-center justify-center gap-2"
+                      className="w-9 h-9 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 transition flex items-center justify-center"
                       title="Approve"
                     >
-                      <Check size={18} /> <span className="md:hidden lg:inline">Approve</span>
+                      <Check size={18} />
                     </button>
                   </>
                 )}
@@ -202,14 +203,14 @@ const Admin: React.FC = () => {
                   <>
                      <button 
                       onClick={() => handleStatusChange(post.id, 'rejected')}
-                      className="flex-1 md:flex-none px-4 py-2 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 transition flex items-center justify-center gap-2"
-                      title="Unpublish (Move to Rejected)"
+                      className="w-9 h-9 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 transition flex items-center justify-center"
+                      title="Unpublish (Reject)"
                     >
-                      <X size={18} /> <span className="md:hidden lg:inline">Unpublish</span>
+                      <X size={18} />
                     </button>
                     <button 
                       onClick={() => handleDelete(post.id)}
-                      className="flex-1 md:flex-none px-4 py-2 rounded-lg bg-gray-700 hover:bg-red-900/30 text-gray-300 hover:text-red-400 border border-transparent hover:border-red-500/30 transition flex items-center justify-center gap-2"
+                      className="w-9 h-9 rounded-lg bg-gray-700 hover:bg-red-900/30 text-gray-400 hover:text-red-400 border border-transparent hover:border-red-500/30 transition flex items-center justify-center"
                       title="Permanently Delete"
                     >
                       <Trash2 size={18} />
@@ -221,21 +222,20 @@ const Admin: React.FC = () => {
                   <>
                      <button 
                       onClick={() => handleStatusChange(post.id, 'approved')}
-                      className="flex-1 md:flex-none px-4 py-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 transition flex items-center justify-center gap-2"
+                      className="w-9 h-9 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 transition flex items-center justify-center"
                       title="Restore (Approve)"
                     >
-                      <Check size={18} /> <span className="md:hidden lg:inline">Restore</span>
+                      <Check size={18} />
                     </button>
                     <button 
                       onClick={() => handleDelete(post.id)}
-                      className="flex-1 md:flex-none px-4 py-2 rounded-lg bg-gray-700 hover:bg-red-900/30 text-gray-300 hover:text-red-400 border border-transparent hover:border-red-500/30 transition flex items-center justify-center gap-2"
+                      className="w-9 h-9 rounded-lg bg-gray-700 hover:bg-red-900/30 text-gray-400 hover:text-red-400 border border-transparent hover:border-red-500/30 transition flex items-center justify-center"
                       title="Permanently Delete"
                     >
                       <Trash2 size={18} />
                     </button>
                   </>
                 )}
-
               </div>
             </div>
           ))
