@@ -20,7 +20,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     }
     
-    // Initialize Pi SDK on load if possible
+    // Attempt to initialize SDK silently in background on load
     PiService.init();
   }, []);
 
@@ -43,27 +43,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(newUser);
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
       } else {
-        // Fallback for Desktop Development (Optional: remove this block for strict Pi Browser only)
-        // If not in Pi Browser, authResult is null.
-        // We can throw an error or handle it.
-        const isPiBrowser = typeof window.Pi !== 'undefined';
+        // If authResult is null, PiService has likely already alerted the error.
+        // We check if we are NOT in Pi Browser to allow dev testing on PC.
+        const isPiBrowser = navigator.userAgent.includes('PiBrowser');
+        
         if (!isPiBrowser) {
-            alert("Pi SDK not detected. Mocking login for desktop development.");
-            const mockUsername = 'PiPioneer_' + Math.floor(Math.random() * 1000);
-            const mockUser: User = {
-                id: 'mock-pi-user-' + Math.random().toString(36).substr(2, 9),
-                username: mockUsername,
-                role: 'pioneer',
-                avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${mockUsername}`
-            };
-            setUser(mockUser);
-            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
+            console.warn("Not in Pi Browser, mocking login.");
+            const shouldMock = confirm("Pi SDK not detected (You are not in Pi Browser). Login as Mock User?");
+            if (shouldMock) {
+                const mockUsername = 'PiPioneer_' + Math.floor(Math.random() * 1000);
+                const mockUser: User = {
+                    id: 'mock-pi-user-' + Math.random().toString(36).substr(2, 9),
+                    username: mockUsername,
+                    role: 'pioneer',
+                    avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${mockUsername}`
+                };
+                setUser(mockUser);
+                localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
+            }
         }
       }
 
-    } catch (e) {
-      console.error("Login failed", e);
-      alert("Login failed. Please try again.");
+    } catch (e: any) {
+      console.error("Login Context Error", e);
+      alert(`Login Process Error: ${e.message}`);
     }
   };
 
