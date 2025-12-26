@@ -39,7 +39,7 @@ const Navbar: React.FC = () => {
           {!user ? (
              <div className="flex gap-2">
                <button 
-                onClick={() => loginAsPioneer('PiPioneer_' + Math.floor(Math.random() * 1000))}
+                onClick={() => loginAsPioneer()}
                 className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition"
                >
                  Connect Wallet

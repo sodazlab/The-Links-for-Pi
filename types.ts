@@ -1,3 +1,4 @@
+
 export type UserRole = 'guest' | 'pioneer' | 'admin';
 
 export interface User {
@@ -5,6 +6,7 @@ export interface User {
   username: string;
   role: UserRole;
   avatarUrl?: string;
+  accessToken?: string; // Added for Pi SDK usage
 }
 
 export type PostCategory = 'youtube' | 'x' | 'instagram' | 'threads' | 'article' | 'other';
@@ -27,9 +29,24 @@ export interface Post {
 
 export interface AuthContextType {
   user: User | null;
-  loginAsPioneer: (username: string) => void;
+  loginAsPioneer: () => Promise<void>;
   loginAsAdmin: () => void;
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
+}
+
+// Pi Network SDK Types
+declare global {
+  interface Window {
+    Pi: any;
+  }
+}
+
+export interface PiAuthResult {
+  accessToken: string;
+  user: {
+    uid: string;
+    username: string;
+  };
 }

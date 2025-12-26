@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '../types';
+import { PiService } from './pi';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -18,21 +19,52 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.removeItem(USER_STORAGE_KEY);
       }
     }
+    
+    // Initialize Pi SDK on load if possible
+    PiService.init();
   }, []);
 
-  const loginAsPioneer = (username: string) => {
-    // Check if we have a stored ID for this username to keep stats consistent
-    // For demo simplicity, we just create a new one if not found or overwrite if found
-    // In a real app, this comes from the SDK
-    const newUser: User = {
-      id: 'pi-user-' + Math.random().toString(36).substr(2, 9),
-      username: username,
-      role: 'pioneer',
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
-    };
-    
-    setUser(newUser);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
+  const loginAsPioneer = async () => {
+    try {
+      // 1. Attempt to Authenticate via Pi SDK
+      const authResult = await PiService.authenticate();
+
+      if (authResult) {
+        // 2. Map Pi User to App User
+        const newUser: User = {
+          id: authResult.user.uid,
+          username: authResult.user.username,
+          role: 'pioneer',
+          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${authResult.user.username}`,
+          accessToken: authResult.accessToken
+        };
+
+        // 3. Update State & Storage
+        setUser(newUser);
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
+      } else {
+        // Fallback for Desktop Development (Optional: remove this block for strict Pi Browser only)
+        // If not in Pi Browser, authResult is null.
+        // We can throw an error or handle it.
+        const isPiBrowser = typeof window.Pi !== 'undefined';
+        if (!isPiBrowser) {
+            alert("Pi SDK not detected. Mocking login for desktop development.");
+            const mockUsername = 'PiPioneer_' + Math.floor(Math.random() * 1000);
+            const mockUser: User = {
+                id: 'mock-pi-user-' + Math.random().toString(36).substr(2, 9),
+                username: mockUsername,
+                role: 'pioneer',
+                avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${mockUsername}`
+            };
+            setUser(mockUser);
+            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
+        }
+      }
+
+    } catch (e) {
+      console.error("Login failed", e);
+      alert("Login failed. Please try again.");
+    }
   };
 
   const loginAsAdmin = () => {
