@@ -1,11 +1,23 @@
 import React from 'react';
 import { useAuth } from '../services/authContext';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { PlusCircle, LogOut, Shield, User as UserIcon } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const { user, loginAsPioneer, loginAsAdmin, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleAdminLogin = () => {
+    // Prevent accidental/unauthorized access by requiring the PIN
+    const pin = window.prompt("Enter Admin PIN:");
+    if (pin === 'pnc123') {
+      loginAsAdmin();
+      navigate('/admin');
+    } else if (pin !== null) {
+      alert("Incorrect PIN. Access denied.");
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#0f0f12]/80 backdrop-blur-xl">
@@ -45,9 +57,9 @@ const Navbar: React.FC = () => {
                  Connect Wallet
                </button>
                <button 
-                onClick={loginAsAdmin}
-                className="p-2 text-gray-500 hover:text-white"
-                title="Admin Login Demo"
+                onClick={handleAdminLogin}
+                className="p-2 text-gray-500 hover:text-white transition"
+                title="Admin Login"
                >
                  <Shield size={16} />
                </button>
