@@ -21,13 +21,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     // 2. Initialize Pi SDK silently on mount
-    // This starts the init process immediately so it's ready when the user clicks Login.
     PiService.init();
   }, []);
 
   const loginAsPioneer = async () => {
     try {
-      // Call authenticate. The PiService now handles init checks internally.
       const authResult = await PiService.authenticate();
 
       if (authResult) {
@@ -43,8 +41,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
       }
     } catch (e: any) {
-      console.error("Login Context Unexpected Error", e);
-      alert("An unexpected error occurred during login.");
+      console.error("Login Context Error", e);
+      // Show a more helpful alert based on common issues
+      const msg = e?.message || "";
+      if (msg.includes("user cancelled")) {
+        alert("Login cancelled.");
+      } else {
+        alert(`Authentication failed. \n\nTip: If you are the developer, please ensure your "Development URL" in the Pi Portal matches this URL exactly.\n\nError: ${msg}`);
+      }
     }
   };
 

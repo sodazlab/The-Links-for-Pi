@@ -10,7 +10,7 @@ export const PiService = {
   ensurePiReady: async (retries = 50): Promise<boolean> => {
     if (window.Pi) return true;
     if (retries === 0) return false;
-    // Wait 100ms and try again (Total 5s wait)
+    // Wait 100ms and try again
     await new Promise(resolve => setTimeout(resolve, 100));
     return PiService.ensurePiReady(retries - 1);
   },
@@ -32,14 +32,9 @@ export const PiService = {
           return false;
         }
 
-        // Check if already initialized by the SDK itself (rare but possible)
-        // Note: The SDK doesn't expose an isInitialized property standardly, 
-        // so we rely on our own singleton flow.
-
         // Initialize SDK
-        // sandbox: true implies the app is running in the Pi Sandbox environment.
-        // Change to false ONLY if you are deployed to production URL and verified.
-        // For debugging "Timeout" issues, ensuring this is called only once is key.
+        // IMPORTANT: 'sandbox: true' is required for testing. 
+        // Ensure your Pi Developer Portal 'Development URL' matches your current URL exactly.
         await window.Pi.init({ version: '2.0', sandbox: true });
         
         console.log('Pi SDK Initialized successfully');
@@ -57,26 +52,19 @@ export const PiService = {
 
   authenticate: async (): Promise<PiAuthResult | null> => {
     try {
-      // 1. Ensure Init (Singleton)
-      const isInitialized = await PiService.init();
-      if (!isInitialized) {
-        alert("Pi SDK failed to initialize. Please reload the page.");
-        return null;
+      // 1. Ensure Init is complete
+      const initialized = await PiService.init();
+      if (!initialized) {
+        throw new Error("Pi SDK could not be initialized.");
       }
 
-      console.log('Requesting authentication...');
+      console.log('Requesting authentication (following official docs)...');
       
-      // 2. Authenticate
       const scopes = ['username', 'payments'];
       
-      // We use a longer timeout (60s) because sometimes users are slow to press "Allow"
-      // or the Pi Browser is slow to pop up the dialog.
-      const authResult = await Promise.race([
-        window.Pi.authenticate(scopes, onIncompletePaymentFound),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Auth Timeout: Pi Browser did not respond in 60s")), 60000)
-        )
-      ]);
+      // 2. Authenticate directly without artificial timeout
+      // Reference: https://github.com/pi-apps/pi-platform-docs/blob/master/authentication.md
+      const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
       
       console.log('Authentication successful:', authResult);
       return authResult as PiAuthResult;
@@ -84,22 +72,22 @@ export const PiService = {
     } catch (err: any) {
       console.error('Pi Auth Failed:', err);
       
-      // Provide user-friendly error messages
-      let msg = err.message || "Unknown error";
-      if (msg.includes("user cancelled")) {
-        msg = "You cancelled the authentication.";
-      } else if (msg.includes("Timeout")) {
-        msg = "Connection timed out. Please try again.";
+      // Handle common Pi SDK errors
+      if (err?.message) {
+         if (err.message.includes("user cancelled")) {
+           console.warn("User cancelled the auth dialog.");
+         }
       }
       
-      alert(`Login Failed: ${msg}`);
-      return null;
+      // Re-throw or return null depending on how you want to handle it in UI
+      throw err; 
     }
   }
 };
 
 function onIncompletePaymentFound(payment: any) {
   console.log('Incomplete payment found:', payment);
-  // NOTE: You must complete the payment here if you have payment logic.
-  // For authentication-only flow, logging is sufficient.
+  // Per docs: "You must handle this callback to complete the payment."
+  // Since this is a linking app, we just log it for now.
+  // If you add payments later, implement the completion logic here.
 }
