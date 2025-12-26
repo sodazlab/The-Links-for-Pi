@@ -9,7 +9,6 @@ const USER_STORAGE_KEY = 'pi_links_user';
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  // Load user from local storage on mount
   useEffect(() => {
     const stored = localStorage.getItem(USER_STORAGE_KEY);
     if (stored) {
@@ -19,18 +18,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.removeItem(USER_STORAGE_KEY);
       }
     }
-    
-    // Attempt to initialize SDK silently in background on load
+    // Attempt silent init
     PiService.init();
   }, []);
 
   const loginAsPioneer = async () => {
+    // 1. Immediate feedback to user (Debug Step)
+    // Remove this alert later if it gets annoying, but keep it now to prove the button works
+    alert("Starting Pi Network Login...");
+
     try {
-      // 1. Attempt to Authenticate via Pi SDK
+      // 2. Authenticate
       const authResult = await PiService.authenticate();
 
       if (authResult) {
-        // 2. Map Pi User to App User
         const newUser: User = {
           id: authResult.user.uid,
           username: authResult.user.username,
@@ -39,34 +40,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           accessToken: authResult.accessToken
         };
 
-        // 3. Update State & Storage
         setUser(newUser);
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
+        // Success feedback
+        // alert(`Welcome back, ${newUser.username}!`);
       } else {
-        // If authResult is null, PiService has likely already alerted the error.
-        // We check if we are NOT in Pi Browser to allow dev testing on PC.
+        // Auth failed or cancelled, handled by PiService alert usually.
+        // Fallback for PC testing:
         const isPiBrowser = navigator.userAgent.includes('PiBrowser');
-        
         if (!isPiBrowser) {
-            console.warn("Not in Pi Browser, mocking login.");
-            const shouldMock = confirm("Pi SDK not detected (You are not in Pi Browser). Login as Mock User?");
-            if (shouldMock) {
-                const mockUsername = 'PiPioneer_' + Math.floor(Math.random() * 1000);
-                const mockUser: User = {
-                    id: 'mock-pi-user-' + Math.random().toString(36).substr(2, 9),
-                    username: mockUsername,
-                    role: 'pioneer',
-                    avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${mockUsername}`
-                };
-                setUser(mockUser);
-                localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
-            }
+           const shouldMock = confirm("Not in Pi Browser. Login as Mock User?");
+           if (shouldMock) {
+               const mockUser: User = {
+                   id: 'mock-' + Math.random().toString(36).substr(2, 5),
+                   username: 'MockPioneer',
+                   role: 'pioneer',
+                   avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=Mock`
+               };
+               setUser(mockUser);
+               localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
+           }
         }
       }
 
     } catch (e: any) {
       console.error("Login Context Error", e);
-      alert(`Login Process Error: ${e.message}`);
+      alert(`Critical Login Error: ${e.message}`);
     }
   };
 
