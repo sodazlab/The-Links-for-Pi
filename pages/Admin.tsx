@@ -2,8 +2,78 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../services/authContext';
 import { db } from '../services/db';
 import { Post, PostStatus } from '../types';
-import { Check, X, Clock, KeyRound, Loader2, Trash2, CheckCircle, AlertTriangle, ExternalLink, RefreshCw, LayoutList } from 'lucide-react';
+import { Check, X, Clock, KeyRound, Loader2, Trash2, CheckCircle, AlertTriangle, ExternalLink, RefreshCw, LayoutList, AlertOctagon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
+// --- Custom Confirmation Modal Component ---
+interface ConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  isDestructive?: boolean;
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onConfirm, title, message, isDestructive }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+        onClick={onClose}
+      />
+      
+      {/* Modal Content */}
+      <motion.div 
+        initial={{ scale: 0.95, opacity: 0, y: 10 }} 
+        animate={{ scale: 1, opacity: 1, y: 0 }} 
+        exit={{ scale: 0.95, opacity: 0, y: 10 }}
+        transition={{ type: "spring", duration: 0.3 }}
+        className="relative bg-[#1e1e24] border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl overflow-hidden"
+      >
+        {/* Top Accent Line */}
+        <div className={`absolute top-0 left-0 w-full h-1 ${isDestructive ? 'bg-red-500' : 'bg-purple-500'}`} />
+        
+        <div className="flex items-start gap-4 mb-4">
+          <div className={`p-3 rounded-full shrink-0 ${isDestructive ? 'bg-red-500/10 text-red-500' : 'bg-purple-500/10 text-purple-500'}`}>
+            {isDestructive ? <AlertOctagon size={24} /> : <AlertTriangle size={24} />}
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white mb-1">{title}</h3>
+            <p className="text-gray-400 text-sm leading-relaxed">{message}</p>
+          </div>
+        </div>
+        
+        <div className="flex gap-3 justify-end mt-6">
+          <button 
+            onClick={onClose}
+            className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={() => { onConfirm(); onClose(); }}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold text-white transition shadow-lg flex items-center gap-2 ${
+              isDestructive 
+                ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' 
+                : 'bg-purple-600 hover:bg-purple-500 shadow-purple-900/20'
+            }`}
+          >
+            {isDestructive ? 'Delete' : 'Confirm'}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// --- Main Admin Component ---
 const Admin: React.FC = () => {
   const { user, loginAsAdmin } = useAuth();
   const [isVerified, setIsVerified] = useState(false);
@@ -13,6 +83,21 @@ const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<PostStatus>('pending');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Modal State
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    isDestructive: boolean;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    isDestructive: false,
+    onConfirm: () => {},
+  });
 
   // Load posts whenever verification or active tab changes
   useEffect(() => {
@@ -32,6 +117,10 @@ const Admin: React.FC = () => {
     loadPosts();
   };
 
+  const closeModal = () => {
+    setModal(prev => ({ ...prev, isOpen: false }));
+  };
+
   const handleStatusChange = async (id: string, newStatus: PostStatus) => {
     // Optimistic update: Remove immediately from current view
     setPosts(prev => prev.filter(p => p.id !== id));
@@ -43,18 +132,25 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to permanently delete this post?")) return;
-
-    // Optimistic update: Remove immediately from UI
-    setPosts(prev => prev.filter(p => p.id !== id));
-    
-    const { error } = await db.deletePost(id);
-    if (error) {
-      console.error("Delete failed", error);
-      alert("Failed to delete post from database.");
-      loadPosts(); // Revert UI if failed
-    }
+  const handleDelete = (id: string) => {
+    // Open Confirmation Modal instead of window.confirm
+    setModal({
+      isOpen: true,
+      title: 'Delete Permanently?',
+      message: 'This action cannot be undone. The post and all associated data will be removed forever.',
+      isDestructive: true,
+      onConfirm: async () => {
+        // Optimistic update
+        setPosts(prev => prev.filter(p => p.id !== id));
+        
+        const { error } = await db.deletePost(id);
+        if (error) {
+          console.error("Delete failed", error);
+          alert("Failed to delete post from database.");
+          loadPosts(); // Revert UI if failed
+        }
+      }
+    });
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -116,7 +212,7 @@ const Admin: React.FC = () => {
 
   // 2. Main Dashboard
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-6 md:py-10 animate-fade-in-up pb-24">
+    <div className="w-full max-w-4xl mx-auto px-4 py-6 md:py-10 animate-fade-in-up pb-24 relative">
       
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -278,11 +374,11 @@ const Admin: React.FC = () => {
                 {activeTab === 'rejected' && (
                   <>
                      <button 
-                      onClick={() => handleStatusChange(post.id, 'approved')}
-                      className="flex-1 sm:flex-none h-10 px-4 rounded-xl bg-white/5 hover:bg-green-500/20 text-gray-400 hover:text-green-400 border border-white/5 hover:border-green-500/30 transition flex items-center justify-center gap-2 text-xs font-semibold"
-                      title="Restore"
+                      onClick={() => handleStatusChange(post.id, 'pending')}
+                      className="flex-1 sm:flex-none h-10 px-4 rounded-xl bg-white/5 hover:bg-purple-500/20 text-gray-400 hover:text-purple-400 border border-white/5 hover:border-purple-500/30 transition flex items-center justify-center gap-2 text-xs font-semibold"
+                      title="Restore to Pending"
                     >
-                      <Check size={16} />
+                      <RefreshCw size={16} />
                       <span className="sm:hidden">Restore</span>
                     </button>
                     <button 
@@ -299,6 +395,20 @@ const Admin: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {modal.isOpen && (
+          <ConfirmModal 
+            isOpen={modal.isOpen}
+            title={modal.title}
+            message={modal.message}
+            isDestructive={modal.isDestructive}
+            onConfirm={modal.onConfirm}
+            onClose={closeModal}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
