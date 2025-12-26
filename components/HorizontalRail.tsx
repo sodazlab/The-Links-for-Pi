@@ -12,7 +12,7 @@ const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
   return (
     <div className="w-full py-8 border-t border-b border-white/5 bg-white/[0.02]">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Trophy className="text-yellow-500 w-5 h-5" />
             {title}
@@ -22,11 +22,12 @@ const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
         
         <div className="relative -mx-4 md:-mx-6">
           {/* 
-            Increased padding-left to pl-12 (48px) and pt-14 (56px) to aggressively prevent clipping.
-            The badge is positioned at -top-3 and -left-3.
-            This ensures ample safe area (~20px+) from the screen edge for the badge.
+            Adjusted padding to restore visual alignment with the header while preventing badge clipping.
+            pl-5 (20px) on mobile gives ~8px clearance for the badge (-12px) and only 4px indent vs header.
+            md:pl-6 (24px) on desktop aligns perfectly with header (px-6).
+            pt-8 (32px) ensures badge vertical clearance without excessive gap.
           */}
-          <div className="flex overflow-x-auto space-x-4 pt-14 pb-12 pl-12 pr-4 md:pl-12 md:pr-6 scrollbar-hide snap-x no-scrollbar">
+          <div className="flex overflow-x-auto space-x-4 pt-8 pb-12 pl-5 pr-4 md:pl-6 md:pr-6 scrollbar-hide snap-x no-scrollbar">
             {posts.map((post, index) => (
               <div key={post.id} className="snap-start flex-shrink-0 w-[280px] h-[320px] relative first:ml-0">
                 {/* Rank Badge */}
