@@ -21,6 +21,7 @@ export const PiService = {
 
     try {
       console.log("Waiting for Pi SDK...");
+      console.log("User Agent:", navigator.userAgent); // Log UA for debugging
       const isReady = await PiService.ensurePiReady();
 
       if (!isReady) {
@@ -63,7 +64,7 @@ export const PiService = {
       const authResult = await Promise.race([
         window.Pi.authenticate(scopes, onIncompletePaymentFound),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Pi Browser did not respond (Timeout)")), 15000)
+          setTimeout(() => reject(new Error("Pi Browser did not respond (Timeout)")), 20000) // Increased to 20s
         )
       ]);
       

@@ -23,15 +23,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const loginAsPioneer = async () => {
-    const isPiBrowser = navigator.userAgent.includes('PiBrowser');
-    
-    if (!isPiBrowser) {
-      alert("⚠️ Access Denied\n\nPlease open this app inside the Pi Browser.");
-      return;
-    }
+    // NOTE: Strict UserAgent check removed to prevent false negatives in Pi Browser.
+    // We rely on PiService.authenticate() handling the connection.
 
     try {
-      // alert("Connecting to Pi Network..."); // Optional: Uncomment if user needs instant feedback
+      // alert("Connecting..."); // Optional: Enable if visual feedback is needed immediately
+      
       const authResult = await PiService.authenticate();
 
       if (authResult) {
@@ -46,7 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(newUser);
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
       } 
-      // If authResult is null, PiService already handled the alert.
+      // If authResult is null, PiService handles the alert/error.
 
     } catch (e: any) {
       console.error("Login Context Error", e);
