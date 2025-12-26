@@ -4,12 +4,25 @@ import HorizontalRail from '../components/HorizontalRail';
 import MasonryGrid from '../components/MasonryGrid';
 import { db } from '../services/db';
 import { Post, PostCategory } from '../types';
-import { Loader2, Grid, Play, Twitter, Instagram, FileText, Link as LinkIcon, Layers, AtSign } from 'lucide-react';
+import { Loader2, Grid, Play, Instagram, FileText, Link as LinkIcon, Layers, AtSign } from 'lucide-react';
+
+// Custom X Logo for Filter Bar
+const XLogoIcon = ({ size = 14 }: { size?: number }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    aria-hidden="true" 
+    width={size} 
+    height={size} 
+    className="fill-current"
+  >
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 const CATEGORIES: { id: PostCategory | 'all'; label: string; icon: React.ElementType }[] = [
   { id: 'all', label: 'All', icon: Grid },
   { id: 'youtube', label: 'YouTube', icon: Play },
-  { id: 'x', label: 'X', icon: Twitter },
+  { id: 'x', label: 'X', icon: XLogoIcon },
   { id: 'threads', label: 'Threads', icon: AtSign },
   { id: 'instagram', label: 'Instagram', icon: Instagram },
   { id: 'article', label: 'Articles', icon: FileText },
