@@ -307,11 +307,11 @@ const Admin: React.FC = () => {
                     </span>
                   </div>
                   
-                  <h3 className="font-bold text-white text-base truncate pr-2 group-hover:text-purple-300 transition-colors">
+                  <h3 className="font-bold text-white text-base pr-2 group-hover:text-purple-300 transition-colors break-words">
                     {post.title}
                   </h3>
                   
-                  <p className="text-gray-400 text-sm mt-1 truncate opacity-80">
+                  <p className="text-gray-400 text-sm mt-1 opacity-80 break-words">
                     {post.description}
                   </p>
                   
@@ -319,10 +319,10 @@ const Admin: React.FC = () => {
                     href={post.url} 
                     target="_blank" 
                     rel="noreferrer" 
-                    className="inline-flex items-center gap-1.5 text-xs text-blue-400 mt-2 hover:text-blue-300 hover:underline transition-colors truncate max-w-full"
+                    className="inline-flex items-start gap-1.5 text-xs text-blue-400 mt-2 hover:text-blue-300 hover:underline transition-colors break-all"
                   >
-                    <ExternalLink size={10} />
-                    <span className="truncate">{post.url}</span>
+                    <ExternalLink size={10} className="mt-[3px] shrink-0" />
+                    <span>{post.url}</span>
                   </a>
                 </div>
               </div>
