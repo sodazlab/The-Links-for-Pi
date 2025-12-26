@@ -1,51 +1,37 @@
 import { PiAuthResult } from '../types';
 
-const PI_SDK_URL = 'https://sdk.minepi.com/pi-sdk.js';
-
 export const PiService = {
   isInitialized: false,
 
   /**
-   * Dynamically loads the Pi SDK script if it's not present on the window object.
-   * This fixes issues where the index.html script tag fails or loads too late.
+   * Waits for window.Pi to be available in the DOM.
+   * This is more stable than dynamic loading inside the Pi Browser.
    */
-  loadScript: (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (window.Pi) {
-        resolve();
-        return;
-      }
+  ensurePiReady: async (retries = 20): Promise<boolean> => {
+    if (window.Pi) return true;
+    if (retries === 0) return false;
 
-      console.log('Pi SDK not found, loading dynamically...');
-      const script = document.createElement('script');
-      script.src = PI_SDK_URL;
-      script.async = true;
-      script.onload = () => {
-        console.log('Pi SDK Script Loaded Dynamically');
-        resolve();
-      };
-      script.onerror = (err) => {
-        console.error('Failed to load Pi SDK Script:', err);
-        reject(new Error('Failed to load Pi SDK script from ' + PI_SDK_URL));
-      };
-      document.head.appendChild(script);
-    });
+    // Wait 200ms and try again
+    await new Promise(resolve => setTimeout(resolve, 200));
+    return PiService.ensurePiReady(retries - 1);
   },
 
   init: async () => {
     if (PiService.isInitialized) return true;
 
     try {
-      // 1. Ensure the script is loaded
-      await PiService.loadScript();
+      console.log("Waiting for Pi SDK...");
+      const isReady = await PiService.ensurePiReady();
 
-      // 2. Double check presence
-      if (typeof window.Pi === 'undefined') {
-        throw new Error('window.Pi is still undefined after script load');
+      if (!isReady) {
+        throw new Error('Pi SDK script loaded but window.Pi is undefined after timeout.');
       }
 
-      // 3. Initialize SDK
+      console.log("Pi SDK detected. Initializing...");
+
+      // Initialize SDK
       // Ensure 'sandbox: true' matches your setting in the Developer Portal
+      // If you are using the actual Pi Network Mainnet URL, set this to false.
       await window.Pi.init({ version: '2.0', sandbox: true });
       
       PiService.isInitialized = true;
@@ -53,40 +39,45 @@ export const PiService = {
       return true;
     } catch (err: any) {
       console.error('Pi SDK Init Error:', err);
-      // Only alert if we are trying to authenticate, otherwise silent fail is okay for init
       return false;
     }
   },
 
   authenticate: async (): Promise<PiAuthResult | null> => {
     try {
-      // 1. Ensure Init (force retry if needed)
+      // 1. Ensure Init
       if (!PiService.isInitialized) {
+        console.log("Not initialized, attempting init...");
         const success = await PiService.init();
         if (!success) {
-          throw new Error("Failed to initialize Pi SDK. Check network.");
+          alert("Could not load Pi Network SDK. Please refresh the page.");
+          return null;
         }
       }
 
-      // 2. Authenticate
-      const scopes = ['username', 'payments'];
       console.log('Calling Pi.authenticate...');
       
-      const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+      // 2. Authenticate with race condition protection
+      const scopes = ['username', 'payments'];
+      
+      const authResult = await Promise.race([
+        window.Pi.authenticate(scopes, onIncompletePaymentFound),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Pi Browser did not respond (Timeout)")), 15000)
+        )
+      ]);
       
       console.log('Authentication result:', authResult);
-      return authResult;
+      return authResult as PiAuthResult;
 
     } catch (err: any) {
       console.error('Pi Auth Error:', err);
-      // CRITICAL: Alert the user so they see why it failed
-      alert(`Pi Login Failed: ${err.message || JSON.stringify(err)}`);
+      alert(`Authentication Error: ${err.message || JSON.stringify(err)}`);
       return null;
     }
   }
 };
 
-// Callback required by SDK
 function onIncompletePaymentFound(payment: any) {
   console.log('Incomplete payment found:', payment);
 }

@@ -18,17 +18,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.removeItem(USER_STORAGE_KEY);
       }
     }
-    // Attempt silent init
-    PiService.init();
+    // Attempt silent init on load
+    PiService.init().catch(e => console.log("Silent init failed", e));
   }, []);
 
   const loginAsPioneer = async () => {
-    // 1. Immediate feedback to user (Debug Step)
-    // Remove this alert later if it gets annoying, but keep it now to prove the button works
-    alert("Starting Pi Network Login...");
+    const isPiBrowser = navigator.userAgent.includes('PiBrowser');
+    
+    if (!isPiBrowser) {
+      alert("⚠️ Access Denied\n\nPlease open this app inside the Pi Browser.");
+      return;
+    }
 
     try {
-      // 2. Authenticate
+      // alert("Connecting to Pi Network..."); // Optional: Uncomment if user needs instant feedback
       const authResult = await PiService.authenticate();
 
       if (authResult) {
@@ -42,30 +45,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setUser(newUser);
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
-        // Success feedback
-        // alert(`Welcome back, ${newUser.username}!`);
-      } else {
-        // Auth failed or cancelled, handled by PiService alert usually.
-        // Fallback for PC testing:
-        const isPiBrowser = navigator.userAgent.includes('PiBrowser');
-        if (!isPiBrowser) {
-           const shouldMock = confirm("Not in Pi Browser. Login as Mock User?");
-           if (shouldMock) {
-               const mockUser: User = {
-                   id: 'mock-' + Math.random().toString(36).substr(2, 5),
-                   username: 'MockPioneer',
-                   role: 'pioneer',
-                   avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=Mock`
-               };
-               setUser(mockUser);
-               localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
-           }
-        }
-      }
+      } 
+      // If authResult is null, PiService already handled the alert.
 
     } catch (e: any) {
       console.error("Login Context Error", e);
-      alert(`Critical Login Error: ${e.message}`);
+      alert(`Login Process Error: ${e.message}`);
     }
   };
 
@@ -83,6 +68,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     setUser(null);
     localStorage.removeItem(USER_STORAGE_KEY);
+    window.location.reload();
   };
 
   return (
