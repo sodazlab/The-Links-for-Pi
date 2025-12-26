@@ -13,7 +13,7 @@ const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
     <div className="w-full border-t border-b border-white/5 bg-white/[0.02]">
       <div className="max-w-7xl mx-auto py-8">
         {/* Header Section */}
-        <div className="flex items-center justify-between px-6 md:px-8 mb-6">
+        <div className="flex items-center justify-between px-6 md:px-8 mb-4">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Trophy className="text-yellow-500 w-5 h-5" />
             {title}
@@ -22,31 +22,37 @@ const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
         </div>
         
         {/* 
-          Scroll Container 
-          - Designed to fit exactly 5 items on a standard 1280px desktop view without cutoff.
-          - Math: (230px * 5) + (20px gap * 4) = ~1230px, fitting within max-w-7xl (1280px).
-          - Fallback: Smooth scroll for smaller screens.
+          Robust Scroll Container Architecture
+          1. py-10: Massive vertical buffer. Ensures hover scales & shadows are NEVER clipped.
+          2. gap-6: Comfortable spacing between items.
+          3. snap-x: Forces clean alignment after scrolling.
+          4. scroll-pl-8: Ensures the first item aligns with the page layout when snapped.
         */}
-        <div className="relative w-full group">
-          <div className="flex overflow-x-auto px-6 md:px-8 space-x-5 pb-8 scrollbar-hide snap-x no-scrollbar">
+        <div className="relative group w-full">
+          
+          <div className="
+            flex overflow-x-auto 
+            gap-6 
+            px-6 md:px-8 
+            pb-12 pt-4 
+            snap-x snap-mandatory 
+            scrollbar-hide 
+            scroll-smooth
+          ">
             {posts.map((post, index) => (
               <div 
                 key={post.id} 
-                className="snap-start flex-shrink-0"
+                className="snap-start flex-shrink-0 relative"
               >
                 {/* 
-                  Card Wrapper
-                  - Width fixed to 230px to ensure 5 columns fit on desktop.
-                  - Relative positioning for the badge.
+                  Card Wrapper 
+                  - Responsive width: 260px on mobile, 280px on desktop for better readability.
+                  - Independent of container width calculations.
                 */}
-                <div className="w-[230px] h-[300px] relative">
+                <div className="w-[260px] md:w-[280px] h-[320px] relative">
                   
-                  {/* 
-                    Rank Badge - MOVED INSIDE
-                    Placed absolutely within the card boundary (top-2 left-2). 
-                    This eliminates external clipping issues completely.
-                  */}
-                  <div className="absolute top-2 left-2 z-20 w-7 h-7 rounded-full bg-yellow-500 text-black font-extrabold text-xs flex items-center justify-center border border-[#0f0f12] shadow-md pointer-events-none">
+                  {/* Rank Badge - Safely positioned inside the card area */}
+                  <div className="absolute top-3 left-3 z-20 w-8 h-8 rounded-full bg-yellow-500 text-black font-extrabold text-sm flex items-center justify-center border border-[#0f0f12] shadow-lg pointer-events-none">
                     {index + 1}
                   </div>
                   
@@ -55,13 +61,17 @@ const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
               </div>
             ))}
             
-            {/* Spacer to ensure last item has right-padding when scrolled to end */}
-            <div className="w-2 flex-shrink-0" />
+            {/* End Spacer: Prevents the last item from being flush against the viewport edge */}
+            <div className="w-2 md:w-4 flex-shrink-0" />
           </div>
           
-          {/* Subtle fade hints for scrolling on smaller screens */}
-          <div className="absolute top-0 right-0 h-[calc(100%-2rem)] w-16 bg-gradient-to-l from-[#0f0f12] to-transparent pointer-events-none opacity-0 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
-          <div className="absolute top-0 left-0 h-[calc(100%-2rem)] w-16 bg-gradient-to-r from-[#0f0f12] to-transparent pointer-events-none opacity-0 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
+          {/* 
+            Gradient Masks 
+            - Provides a visual cue that there is more content.
+            - Softens the "hard cut" of the off-screen items.
+          */}
+          <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#0f0f12] via-[#0f0f12]/60 to-transparent pointer-events-none z-10" />
+          <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[#0f0f12] to-transparent pointer-events-none z-10 hidden md:block opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
       </div>
     </div>
