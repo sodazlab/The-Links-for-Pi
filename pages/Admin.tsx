@@ -76,7 +76,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onConfirm,
 // --- Main Admin Component ---
 const Admin: React.FC = () => {
   const { user, loginAsAdmin } = useAuth();
-  const [isVerified, setIsVerified] = useState(false);
+  
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   
@@ -99,12 +99,12 @@ const Admin: React.FC = () => {
     onConfirm: () => {},
   });
 
-  // Load posts whenever verification or active tab changes
+  // Load posts whenever user or active tab changes
   useEffect(() => {
-    if (isVerified && user?.role === 'admin') {
+    if (user?.role === 'admin') {
       loadPosts();
     }
-  }, [isVerified, user, activeTab]);
+  }, [user, activeTab]);
 
   const loadPosts = async () => {
     setLoading(true);
@@ -157,7 +157,6 @@ const Admin: React.FC = () => {
     e.preventDefault();
     if (password === 'pnc123') {
       loginAsAdmin(); // Ensures user role is Admin
-      setIsVerified(true);
       setError('');
     } else {
       setError('Invalid PIN.');
@@ -165,8 +164,8 @@ const Admin: React.FC = () => {
     }
   };
 
-  // 1. Login Guard
-  if (!user || user.role !== 'admin' || !isVerified) {
+  // 1. Login Guard - Persists based on user role
+  if (!user || user.role !== 'admin') {
     return (
       <div className="flex items-center justify-center min-h-[80vh] px-4 animate-fade-in-up">
         <div className="w-full max-w-sm bg-[#16161e] border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
