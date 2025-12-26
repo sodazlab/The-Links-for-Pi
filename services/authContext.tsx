@@ -10,6 +10,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    // 1. Load User from Storage
     const stored = localStorage.getItem(USER_STORAGE_KEY);
     if (stored) {
       try {
@@ -18,17 +19,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.removeItem(USER_STORAGE_KEY);
       }
     }
-    // Attempt silent init on load
-    PiService.init().catch(e => console.log("Silent init failed", e));
+    
+    // 2. Initialize Pi SDK silently on mount
+    // This starts the init process immediately so it's ready when the user clicks Login.
+    PiService.init();
   }, []);
 
   const loginAsPioneer = async () => {
-    // NOTE: Strict UserAgent check removed to prevent false negatives in Pi Browser.
-    // We rely on PiService.authenticate() handling the connection.
-
     try {
-      // alert("Connecting..."); // Optional: Enable if visual feedback is needed immediately
-      
+      // Call authenticate. The PiService now handles init checks internally.
       const authResult = await PiService.authenticate();
 
       if (authResult) {
@@ -42,12 +41,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setUser(newUser);
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
-      } 
-      // If authResult is null, PiService handles the alert/error.
-
+      }
     } catch (e: any) {
-      console.error("Login Context Error", e);
-      alert(`Login Process Error: ${e.message}`);
+      console.error("Login Context Unexpected Error", e);
+      alert("An unexpected error occurred during login.");
     }
   };
 
