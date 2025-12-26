@@ -138,9 +138,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
               {post.title}
             </h3>
             
-            {isFeatured && (
-              <p className="text-gray-200 text-sm md:text-base line-clamp-3 mt-2 font-light drop-shadow-sm">{post.description}</p>
-            )}
+            {/* Display description for all variants, adjusting lines based on size */}
+            <p className={`text-gray-200 font-light drop-shadow-sm mt-1 ${
+              isFeatured ? 'text-sm md:text-base line-clamp-3' : 
+              variant === 'compact' ? 'text-sm line-clamp-4' : 
+              'text-xs line-clamp-2'
+            }`}>
+              {post.description}
+            </p>
 
             <div className="flex items-center space-x-4 pt-3 mt-2 border-t border-white/10">
               <div className="flex items-center gap-2">
