@@ -134,6 +134,51 @@ export const db = {
     return { data, error };
   },
 
+  // Update an existing post
+  updatePost: async (postId: string, updates: Partial<Post>) => {
+    if (!isConfigured) {
+      // Mock Mode
+      const posts = getMockPosts();
+      const updatedPosts = posts.map(p => 
+        p.id === postId ? { ...p, ...updates } : p
+      );
+      saveMockPosts(updatedPosts);
+      return { error: null };
+    }
+
+    const { error } = await supabase
+      .from('posts')
+      .update({
+        title: updates.title,
+        description: updates.description,
+        url: updates.url,
+        category: updates.category
+      })
+      .eq('id', postId);
+
+    if (error) console.error('Error updating post:', error.message);
+    return { error };
+  },
+
+  // Delete a post
+  deletePost: async (postId: string) => {
+    if (!isConfigured) {
+      // Mock Mode
+      const posts = getMockPosts();
+      const filteredPosts = posts.filter(p => p.id !== postId);
+      saveMockPosts(filteredPosts);
+      return { error: null };
+    }
+
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId);
+
+    if (error) console.error('Error deleting post:', error.message);
+    return { error };
+  },
+
   // Update post status
   updatePostStatus: async (id: string, status: PostStatus) => {
     if (!isConfigured) {

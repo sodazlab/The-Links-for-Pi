@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Instagram, FileText, Link as LinkIcon, Heart, Eye, AtSign } from 'lucide-react';
+import { Play, Instagram, FileText, Link as LinkIcon, Heart, Eye, AtSign, Pencil, Trash2 } from 'lucide-react';
 import { Post } from '../types';
 import { db } from '../services/db';
 import { useAuth } from '../services/authContext';
+import { useNavigate } from 'react-router-dom';
 
 interface PostCardProps {
   post: Post;
@@ -20,10 +21,12 @@ const XLogo = ({ className }: { className?: string }) => (
 
 const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', className = '' }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
   const [likes, setLikes] = useState(post.likesCount);
   const [views, setViews] = useState(post.viewsCount);
   const [hasViewed, setHasViewed] = useState(false);
+  const [isVisible, setIsVisible] = useState(true); // For optimistic delete
 
   // Check if current user Liked this post
   useEffect(() => {
@@ -31,6 +34,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
       db.checkUserLike(post.id, user.id).then(liked => setIsLiked(liked));
     }
   }, [user, post.id]);
+
+  // Check ownership
+  const isOwner = user?.id === post.userId;
 
   const toggleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -74,6 +80,27 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     }
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate('/submit', { state: { post } });
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (window.confirm("Are you sure you want to delete this post? This cannot be undone.")) {
+      setIsVisible(false); // Immediate UI removal
+      const { error } = await db.deletePost(post.id);
+      if (error) {
+        alert("Failed to delete post. Reloading...");
+        setIsVisible(true);
+        window.location.reload();
+      }
+    }
+  };
+
   const getIcon = () => {
     switch (post.category) {
       case 'youtube': return <Play className="w-5 h-5 text-white" fill="currentColor" />;
@@ -90,7 +117,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
       case 'youtube': 
         return 'bg-gradient-to-br from-[#ff0000] via-[#c40404] to-[#282828]';
       case 'x': 
-        // Changed from black-heavy gradient to a lighter charcoal/slate gradient for better contrast
         return 'bg-gradient-to-br from-[#525252] via-[#2d2d2d] to-[#0a0a0a]';
       case 'threads': 
         return 'bg-gradient-to-br from-[#000000] via-[#1a1a1a] to-[#333333]'; 
@@ -105,6 +131,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
 
   const isFeatured = variant === 'featured';
   
+  if (!isVisible) return null;
+
   return (
     <motion.div 
       whileHover={{ scale: 1.02 }}
@@ -126,6 +154,26 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
             <div className={`p-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg`}>
               {getIcon()}
             </div>
+
+            {/* Owner Actions */}
+            {isOwner && (
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleEdit}
+                  className="p-2 rounded-full bg-black/40 hover:bg-white/20 text-white/80 hover:text-white transition backdrop-blur-md border border-white/10"
+                  title="Edit Post"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button 
+                  onClick={handleDelete}
+                  className="p-2 rounded-full bg-black/40 hover:bg-red-500/20 text-white/80 hover:text-red-400 transition backdrop-blur-md border border-white/10"
+                  title="Delete Post"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="mt-auto space-y-2">
@@ -139,7 +187,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
               {post.title}
             </h3>
             
-            {/* Display description for all variants, adjusting lines based on size */}
             <p className={`text-gray-200 font-light drop-shadow-sm mt-1 ${
               isFeatured ? 'text-sm md:text-base line-clamp-3' : 
               variant === 'compact' ? 'text-sm line-clamp-4' : 
@@ -150,7 +197,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
 
             <div className="flex items-center space-x-4 pt-3 mt-2 border-t border-white/10">
               <div className="flex items-center gap-2">
-                 {/* Avatar placeholder if needed, or just username */}
                  <span className="text-xs font-semibold text-gray-300">@{post.username}</span>
               </div>
               

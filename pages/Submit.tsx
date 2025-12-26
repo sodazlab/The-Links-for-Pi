@@ -1,18 +1,34 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../services/authContext';
 import { db } from '../services/db';
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { PostCategory } from '../types';
+import { CheckCircle, AlertCircle, Loader2, Save } from 'lucide-react';
+import { PostCategory, Post } from '../types';
 
 const Submit: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if we are editing an existing post
+  const editModePost = location.state?.post as Post | undefined;
+  const isEditMode = !!editModePost;
+
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [detectedCategory, setDetectedCategory] = useState<PostCategory>('other');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize form if in edit mode
+  useEffect(() => {
+    if (editModePost) {
+      setUrl(editModePost.url);
+      setTitle(editModePost.title);
+      setDescription(editModePost.description);
+      setDetectedCategory(editModePost.category);
+    }
+  }, [editModePost]);
 
   // Auto-detect category
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,35 +48,46 @@ const Submit: React.FC = () => {
     e.preventDefault();
     if (!user) return;
     
-    console.log('Submitting post...');
     setIsSubmitting(true);
     
     try {
-      const { error } = await db.createPost({
-        userId: user.id,
-        username: user.username,
-        title,
-        description,
-        url,
-        category: detectedCategory
-      });
-
-      if (error) {
-        console.error('Submission error:', error);
-        // Safely extract error message
-        const errorMessage = error.message || error.error_description || error.details || JSON.stringify(error);
-        alert(`Error submitting post: ${errorMessage}`);
+      let result;
+      if (isEditMode && editModePost) {
+        // Update existing post
+        result = await db.updatePost(editModePost.id, {
+          title,
+          description,
+          url,
+          category: detectedCategory
+        });
       } else {
-        console.log('Submission successful');
+        // Create new post
+        result = await db.createPost({
+          userId: user.id,
+          username: user.username,
+          title,
+          description,
+          url,
+          category: detectedCategory
+        });
+      }
+
+      if (result.error) {
+        console.error('Submission error:', result.error);
+        const errorMessage = typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as any).message 
+          : JSON.stringify(result.error);
+        alert(`Error: ${errorMessage}`);
+      } else {
         // Small delay for UX
         setTimeout(() => {
-          alert('Post submitted for approval!');
+          alert(isEditMode ? 'Post updated successfully!' : 'Post submitted for approval!');
           navigate('/');
         }, 500);
       }
     } catch (err: any) {
       console.error('Unexpected error during submission:', err);
-      const msg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      const msg = err?.message || String(err);
       alert(`An unexpected error occurred: ${msg}`);
     } finally {
       setIsSubmitting(false);
@@ -80,10 +107,14 @@ const Submit: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 md:p-8">
+    <div className="max-w-2xl mx-auto p-4 md:p-8 animate-fade-in-up">
       <div className="bg-[#16161e] border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
-        <h1 className="text-3xl font-bold text-white mb-2">Submit a Link</h1>
-        <p className="text-gray-400 mb-8">Share high-quality Pi Network content with the community.</p>
+        <h1 className="text-3xl font-bold text-white mb-2">
+          {isEditMode ? 'Edit Post' : 'Submit a Link'}
+        </h1>
+        <p className="text-gray-400 mb-8">
+          {isEditMode ? 'Update your content details.' : 'Share high-quality Pi Network content with the community.'}
+        </p>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           
@@ -99,7 +130,6 @@ const Submit: React.FC = () => {
                 className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition"
               />
               
-              {/* Category Indicator - Moved out of input */}
               <div className="flex items-center gap-2 animate-fade-in">
                 <span className="text-sm text-gray-500">Detected Category:</span>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border transition-all duration-300 ${
@@ -147,19 +177,15 @@ const Submit: React.FC = () => {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Submitting...
+                {isEditMode ? 'Updating...' : 'Submitting...'}
               </>
             ) : (
               <>
-                <CheckCircle className="w-5 h-5" />
-                Submit for Review
+                {isEditMode ? <Save className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                {isEditMode ? 'Update Post' : 'Submit for Review'}
               </>
             )}
           </button>
-          
-          <p className="text-xs text-center text-gray-500">
-            All submissions are reviewed by moderators before going live.
-          </p>
         </form>
       </div>
     </div>

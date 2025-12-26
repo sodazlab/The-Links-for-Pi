@@ -31,15 +31,11 @@ const Navbar: React.FC = () => {
           </span>
         </Link>
 
+        {/* Middle Nav - Simplified to avoid redundancy */}
         <div className="flex items-center gap-4">
           <Link to="/" className={`text-sm font-medium hover:text-white transition ${location.pathname === '/' ? 'text-white' : 'text-gray-400'}`}>
             Discover
           </Link>
-          {user && (
-            <Link to="/submit" className={`text-sm font-medium hover:text-white transition ${location.pathname === '/submit' ? 'text-white' : 'text-gray-400'}`}>
-              Submit
-            </Link>
-          )}
           {user?.role === 'admin' && (
             <Link to="/admin" className={`text-sm font-medium hover:text-white transition ${location.pathname === '/admin' ? 'text-white' : 'text-gray-400'}`}>
               Admin
@@ -71,11 +67,11 @@ const Navbar: React.FC = () => {
                 <span className="text-xs font-medium text-gray-300 truncate max-w-[100px]">{user.username}</span>
               </div>
               
-              <Link to="/submit">
+              <Link to="/submit" title="Submit Link">
                 <PlusCircle className="text-purple-400 hover:text-purple-300 transition cursor-pointer" />
               </Link>
               
-              <button onClick={logout} className="text-gray-500 hover:text-red-400 transition">
+              <button onClick={logout} className="text-gray-500 hover:text-red-400 transition" title="Logout">
                 <LogOut size={18} />
               </button>
             </div>
