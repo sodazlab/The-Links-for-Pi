@@ -9,14 +9,8 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
 
   const handleAdminLogin = () => {
-    // Prevent accidental/unauthorized access by requiring the PIN
-    const pin = window.prompt("Enter Admin PIN:");
-    if (pin === 'pnc123') {
-      loginAsAdmin();
-      navigate('/admin');
-    } else if (pin !== null) {
-      alert("Incorrect PIN. Access denied.");
-    }
+    // Navigate directly to admin page to handle secure login via UI instead of prompt
+    navigate('/admin');
   };
 
   return (

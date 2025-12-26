@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../services/authContext';
 import { db } from '../services/db';
 import { Post } from '../types';
-import { Check, X, Clock, Lock, KeyRound, Loader2 } from 'lucide-react';
+import { Check, X, Clock, KeyRound, Loader2 } from 'lucide-react';
 
 const Admin: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loginAsAdmin } = useAuth();
   const [isVerified, setIsVerified] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -50,6 +50,7 @@ const Admin: React.FC = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === 'pnc123') {
+      loginAsAdmin(); // Ensures user role is Admin
       setIsVerified(true);
       setError('');
     } else {
@@ -58,21 +59,8 @@ const Admin: React.FC = () => {
     }
   };
 
-  // 1. Check User Role First
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
-        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-          <Lock className="w-8 h-8 text-red-500" />
-        </div>
-        <h2 className="text-xl font-bold text-white mb-2">Unauthorized Access</h2>
-        <p className="text-gray-400">You do not have permission to view this page.</p>
-      </div>
-    );
-  }
-
-  // 2. Check PIN Verification
-  if (!isVerified) {
+  // Unified Guard: If not admin OR not verified (even if role is admin), show login/verify screen
+  if (!user || user.role !== 'admin' || !isVerified) {
     return (
       <div className="flex items-center justify-center min-h-[80vh] px-4 animate-fade-in-up">
         <div className="w-full max-w-md bg-[#16161e] border border-white/10 rounded-2xl p-8 shadow-2xl backdrop-blur-xl">
@@ -80,8 +68,8 @@ const Admin: React.FC = () => {
             <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-purple-500/30">
               <KeyRound className="w-8 h-8 text-purple-400" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Admin Verification</h1>
-            <p className="text-gray-400 mt-2 text-sm">Please enter the security PIN to continue.</p>
+            <h1 className="text-2xl font-bold text-white">Admin Access</h1>
+            <p className="text-gray-400 mt-2 text-sm">Enter PIN to verify privileges.</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -107,6 +95,12 @@ const Admin: React.FC = () => {
               Verify Access
             </button>
           </form>
+          
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-600">
+               Development PIN: <span className="font-mono text-gray-500">pnc123</span>
+            </p>
+          </div>
         </div>
       </div>
     );
