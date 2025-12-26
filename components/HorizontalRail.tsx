@@ -11,9 +11,9 @@ interface HorizontalRailProps {
 const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
   return (
     <div className="w-full border-t border-b border-white/5 bg-white/[0.02]">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto py-8">
         {/* Header Section */}
-        <div className="flex items-center justify-between px-6 md:px-8 pt-8 mb-2">
+        <div className="flex items-center justify-between px-6 md:px-8 mb-6">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Trophy className="text-yellow-500 w-5 h-5" />
             {title}
@@ -23,27 +23,30 @@ const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
         
         {/* 
           Scroll Container 
-          - pb-10: Provides space for bottom shadows and hover effects
-          - px-6: Outer padding for the rail start/end
+          - Designed to fit exactly 5 items on a standard 1280px desktop view without cutoff.
+          - Math: (230px * 5) + (20px gap * 4) = ~1230px, fitting within max-w-7xl (1280px).
+          - Fallback: Smooth scroll for smaller screens.
         */}
-        <div className="relative w-full">
-          <div className="flex overflow-x-auto pb-10 px-6 md:px-8 scrollbar-hide snap-x no-scrollbar">
+        <div className="relative w-full group">
+          <div className="flex overflow-x-auto px-6 md:px-8 space-x-5 pb-8 scrollbar-hide snap-x no-scrollbar">
             {posts.map((post, index) => (
-              // Wrapper Div: acts as a buffer zone.
-              // pl-5 pt-5: Pushes the inner card down/right, creating "internal" space for the absolute badge.
-              // This ensures the badge is technically "inside" this div, so overflow-auto won't clip it.
               <div 
                 key={post.id} 
-                className="snap-start flex-shrink-0 relative pl-5 pt-5 pr-3"
+                className="snap-start flex-shrink-0"
               >
                 {/* 
-                  Container for Card + Badge 
-                  Width reduced to 260px to fit ~5 items on standard 1280px screens 
+                  Card Wrapper
+                  - Width fixed to 230px to ensure 5 columns fit on desktop.
+                  - Relative positioning for the badge.
                 */}
-                <div className="w-[260px] h-[320px] relative group">
+                <div className="w-[230px] h-[300px] relative">
                   
-                  {/* Rank Badge: Positioned at the top-left of the WRAPPER's padding area */}
-                  <div className="absolute -top-3 -left-3 z-30 w-8 h-8 rounded-full bg-yellow-500 text-black font-extrabold text-sm flex items-center justify-center border-2 border-[#0f0f12] shadow-lg transform group-hover:-translate-y-1 transition-transform duration-300">
+                  {/* 
+                    Rank Badge - MOVED INSIDE
+                    Placed absolutely within the card boundary (top-2 left-2). 
+                    This eliminates external clipping issues completely.
+                  */}
+                  <div className="absolute top-2 left-2 z-20 w-7 h-7 rounded-full bg-yellow-500 text-black font-extrabold text-xs flex items-center justify-center border border-[#0f0f12] shadow-md pointer-events-none">
                     {index + 1}
                   </div>
                   
@@ -51,10 +54,14 @@ const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
                 </div>
               </div>
             ))}
+            
+            {/* Spacer to ensure last item has right-padding when scrolled to end */}
+            <div className="w-2 flex-shrink-0" />
           </div>
           
-          {/* Fade Overlay - Right side only */}
-          <div className="absolute top-0 right-0 h-full w-24 bg-gradient-to-l from-[#0f0f12] via-[#0f0f12]/40 to-transparent pointer-events-none z-20" />
+          {/* Subtle fade hints for scrolling on smaller screens */}
+          <div className="absolute top-0 right-0 h-[calc(100%-2rem)] w-16 bg-gradient-to-l from-[#0f0f12] to-transparent pointer-events-none opacity-0 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
+          <div className="absolute top-0 left-0 h-[calc(100%-2rem)] w-16 bg-gradient-to-r from-[#0f0f12] to-transparent pointer-events-none opacity-0 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
         </div>
       </div>
     </div>
