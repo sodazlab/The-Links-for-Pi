@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../services/authContext';
 import { db } from '../services/db';
 import { PiService } from '../services/pi';
-import { Loader2, Wallet, Play, Instagram, FileText, Link as LinkIcon, AtSign, ChevronDown, Type, AlignLeft, Globe } from 'lucide-react';
+import { Loader2, Wallet, Play, Instagram, FileText, Link as LinkIcon, AtSign, ChevronDown, Type, AlignLeft, Globe, AlertTriangle } from 'lucide-react';
 import { PostCategory, Post } from '../types';
 import Modal from '../components/Modal';
 
@@ -14,7 +14,7 @@ const XLogoIcon = ({ size = 14, className }: { size?: number, className?: string
     aria-hidden="true" 
     width={size} 
     height={size} 
-    className={`fill-current ${className}`}
+    className={`fill-current ${className || ''}`}
   >
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
@@ -151,7 +151,27 @@ const Submit: React.FC = () => {
     }
   };
 
-  if (!user) return null;
+  // Safe safe UI for unauthenticated state
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="p-4 bg-white/5 rounded-full mb-4">
+          <AlertTriangle className="w-8 h-8 text-yellow-500" />
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">Authentication Required</h2>
+        <p className="text-gray-400 mb-6 text-sm">Please connect your wallet to submit or edit links.</p>
+        <button 
+          onClick={() => navigate('/')}
+          className="px-6 py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition border border-white/10"
+        >
+          Return to Home
+        </button>
+      </div>
+    );
+  }
+
+  // Determine the icon component for the detected category
+  const SelectedIcon = CATEGORY_OPTIONS.find(c => c.id === detectedCategory)?.icon || LinkIcon;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
@@ -218,7 +238,7 @@ const Submit: React.FC = () => {
             <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Category</label>
             <div className="relative group">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors pointer-events-none z-10">
-                {CATEGORY_OPTIONS.find(c => c.id === detectedCategory)?.icon({ size: 18 }) || <LinkIcon size={18} />}
+                <SelectedIcon size={18} />
               </div>
               
               <select 
