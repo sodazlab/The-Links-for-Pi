@@ -5,7 +5,7 @@ import { Post } from '../types';
 import { db } from '../services/db';
 import { useAuth } from '../services/authContext';
 import { useNavigate } from 'react-router-dom';
-import Modal from './Modal';
+import Modal from '../components/Modal';
 
 interface PostCardProps {
   post: Post;

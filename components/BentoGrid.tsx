@@ -1,5 +1,5 @@
 import React from 'react';
-import PostCard from './PostCard';
+import PostCard from '../pages/PostCard';
 import { Post } from '../types';
 
 interface BentoGridProps {
