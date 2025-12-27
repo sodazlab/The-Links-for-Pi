@@ -4,8 +4,9 @@ import { useAuth } from '../services/authContext';
 import { useLanguage } from '../services/languageContext';
 import { db } from '../services/db';
 import { PiService } from '../services/pi';
-import { Loader2, Wallet, Play, Instagram, FileText, Link as LinkIcon, AtSign, ChevronDown, Type, AlignLeft, Globe, AlertTriangle, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Loader2, Wallet, Play, Instagram, FileText, Link as LinkIcon, AtSign, ChevronDown, Type, AlignLeft, Globe, AlertTriangle, ShieldAlert, CheckCircle2, Languages } from 'lucide-react';
 import { PostCategory, Post } from '../types';
+import { LANGUAGES, LanguageCode } from '../services/translations';
 import Modal from '../components/Modal';
 
 // Custom X Logo
@@ -23,7 +24,7 @@ const XLogoIcon = ({ size = 14, className }: { size?: number, className?: string
 
 const Submit: React.FC = () => {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -35,6 +36,7 @@ const Submit: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [detectedCategory, setDetectedCategory] = useState<PostCategory>('other');
+  const [postLanguage, setPostLanguage] = useState<string>(language); // Default to current app language
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending_payment' | 'saving'>('idle');
 
@@ -66,6 +68,7 @@ const Submit: React.FC = () => {
       setTitle(editModePost.title);
       setDescription(editModePost.description);
       setDetectedCategory(editModePost.category);
+      setPostLanguage(editModePost.language || 'en');
     }
   }, [editModePost]);
 
@@ -124,8 +127,8 @@ const Submit: React.FC = () => {
       if (isPaymentComplete) {
         setPaymentStatus('saving');
         const result = isEditMode && editModePost 
-          ? await db.updatePost(editModePost.id, { title, description, url, category: detectedCategory })
-          : await db.createPost({ userId: user.id, username: user.username, title, description, url, category: detectedCategory });
+          ? await db.updatePost(editModePost.id, { title, description, url, category: detectedCategory, language: postLanguage })
+          : await db.createPost({ userId: user.id, username: user.username, title, description, url, category: detectedCategory, language: postLanguage });
 
         if (result.error) throw new Error('Failed to save to database.');
 
@@ -245,28 +248,56 @@ const Submit: React.FC = () => {
             </div>
           </div>
 
-          {/* Category Select (Combo Box) */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">{t('submit.category')}</label>
-            <div className="relative group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors pointer-events-none z-10">
-                <SelectedIcon size={18} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Category Select (Combo Box) */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">{t('submit.category')}</label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors pointer-events-none z-10">
+                  <SelectedIcon size={18} />
+                </div>
+                
+                <select 
+                  value={detectedCategory} 
+                  onChange={(e) => setDetectedCategory(e.target.value as PostCategory)}
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl pl-12 pr-10 py-4 text-white text-sm appearance-none focus:outline-none focus:border-purple-500 focus:bg-white/5 transition cursor-pointer relative z-0"
+                >
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id} className="bg-[#1a1a20] text-white">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                  <ChevronDown size={16} />
+                </div>
               </div>
-              
-              <select 
-                value={detectedCategory} 
-                onChange={(e) => setDetectedCategory(e.target.value as PostCategory)}
-                className="w-full bg-black/40 border border-white/10 rounded-2xl pl-12 pr-10 py-4 text-white text-sm appearance-none focus:outline-none focus:border-purple-500 focus:bg-white/5 transition cursor-pointer relative z-0"
-              >
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id} className="bg-[#1a1a20] text-white">
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                <ChevronDown size={16} />
+            </div>
+
+            {/* Language Select */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">{t('submit.post_lang')}</label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors pointer-events-none z-10">
+                  <Languages size={18} />
+                </div>
+                
+                <select 
+                  value={postLanguage} 
+                  onChange={(e) => setPostLanguage(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl pl-12 pr-10 py-4 text-white text-sm appearance-none focus:outline-none focus:border-purple-500 focus:bg-white/5 transition cursor-pointer relative z-0"
+                >
+                  {LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code} className="bg-[#1a1a20] text-white">
+                      {lang.label} ({lang.code.toUpperCase()})
+                    </option>
+                  ))}
+                </select>
+                
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                  <ChevronDown size={16} />
+                </div>
               </div>
             </div>
           </div>

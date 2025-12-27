@@ -43,7 +43,8 @@ export const db = {
       likesCount: p.likes_count,
       viewsCount: p.views_count,
       createdAt: p.created_at,
-      imageUrl: p.image_url
+      imageUrl: p.image_url,
+      language: p.language || 'en'
     }));
   },
 
@@ -69,7 +70,8 @@ export const db = {
       likesCount: p.likes_count,
       viewsCount: p.views_count,
       createdAt: p.created_at,
-      imageUrl: p.image_url
+      imageUrl: p.image_url,
+      language: p.language || 'en'
     }));
   },
 
@@ -85,6 +87,7 @@ export const db = {
         description: post.description || '',
         url: post.url || '',
         category: post.category || 'other',
+        language: post.language || 'en',
         status: 'pending',
         likesCount: 0,
         viewsCount: 0,
@@ -106,6 +109,7 @@ export const db = {
         description: post.description,
         url: post.url,
         category: post.category,
+        language: post.language || 'en',
         status: 'pending',
         likes_count: 0,
         views_count: 0,
@@ -132,7 +136,8 @@ export const db = {
         title: updates.title,
         description: updates.description,
         url: updates.url,
-        category: updates.category
+        category: updates.category,
+        language: updates.language
       })
       .eq('id', postId);
 

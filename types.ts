@@ -20,6 +20,7 @@ export interface Post {
   description: string;
   url: string;
   category: PostCategory;
+  language: string; // Added language field (e.g., 'en', 'kr')
   status: PostStatus;
   likesCount: number;
   viewsCount: number;

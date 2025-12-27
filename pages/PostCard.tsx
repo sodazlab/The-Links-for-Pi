@@ -156,8 +156,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
 
           <div className="relative z-10 flex flex-col h-full">
             <div className="flex justify-between items-start mb-4">
-              <div className="p-2.5 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
-                {getIcon()}
+              <div className="flex gap-2">
+                <div className="p-2.5 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
+                  {getIcon()}
+                </div>
+                {/* Language Badge */}
+                {post.language && (
+                  <div className="flex items-center justify-center p-2.5 h-[38px] min-w-[38px] rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl text-[10px] font-black uppercase tracking-wider text-gray-300">
+                    {post.language}
+                  </div>
+                )}
               </div>
 
               {isOwner && (
