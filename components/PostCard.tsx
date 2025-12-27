@@ -58,8 +58,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     if (!user) {
       setModalConfig({
         isOpen: true,
-        title: 'Pi Wallet Required',
-        message: 'Join our community by connecting your Pi wallet to interact with posts.',
+        title: 'Join the Community',
+        message: 'Please connect your Pi wallet to interact with posts and show your support.',
         type: 'warning',
         confirmText: 'Got it'
       });
@@ -97,18 +97,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     
     setModalConfig({
       isOpen: true,
-      title: 'Permanently Remove?',
-      message: 'This link will be erased from the community feed. This action cannot be undone.',
+      title: 'Remove Submission?',
+      message: 'This link will be permanently erased from your history and the community feed.',
       type: 'confirm',
       showCancel: true,
-      confirmText: 'Delete Post',
+      confirmText: 'Yes, Delete',
       onConfirm: async () => {
         const { error } = await db.deletePost(post.id);
         if (error) {
           setModalConfig({
             isOpen: true,
-            title: 'Deletion Failed',
-            message: 'An error occurred. Please refresh and try again.',
+            title: 'Action Failed',
+            message: 'Unable to remove the post at this time. Please try again.',
             type: 'error'
           });
         } else {
@@ -131,12 +131,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
 
   const getGradient = () => {
     switch (post.category) {
-      case 'youtube': return 'from-[#ff0000]/40 to-[#282828]';
-      case 'x': return 'from-[#525252]/40 to-[#0a0a0a]';
-      case 'threads': return 'from-[#1a1a1a] to-[#333333]'; 
-      case 'instagram': return 'from-[#833ab4]/30 to-[#fcb045]/30';
-      case 'article': return 'from-[#0f0c29]/50 to-[#24243e]';
-      default: return 'from-purple-600/30 to-[#1a1a1a]';
+      case 'youtube': return 'from-[#ff0000]/30 to-[#120524]';
+      case 'x': return 'from-[#525252]/30 to-[#120524]';
+      case 'instagram': return 'from-[#fd1d1d]/20 to-[#120524]';
+      case 'article': return 'from-[#0f0c29]/40 to-[#120524]';
+      default: return 'from-purple-600/20 to-[#120524]';
     }
   };
 
@@ -150,17 +149,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         whileHover={{ scale: 1.02 }}
-        className={`relative group overflow-hidden rounded-[2rem] border border-white/10 shadow-lg ${className} bg-[#1a1a1a] flex flex-col`}
+        className={`relative group overflow-hidden rounded-[2.5rem] border border-white/10 shadow-lg ${className} bg-[#1a1a1a] flex flex-col`}
       >
         <a href={post.url} target="_blank" rel="noreferrer" onClick={handleCardClick} className="flex-grow flex flex-col p-6 relative">
-          {/* Trendy Glass Gradient Background */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${getGradient()} opacity-50 transition-opacity group-hover:opacity-70`} />
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+          <div className={`absolute inset-0 bg-gradient-to-br ${getGradient()} opacity-60 transition-opacity group-hover:opacity-80`} />
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
 
           <div className="relative z-10 flex flex-col h-full">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-2.5 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-3 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
                 {getIcon()}
               </div>
 
@@ -177,28 +175,28 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
             </div>
 
             <div className="mt-auto">
-              <div className="flex items-center gap-2 mb-2">
-                 <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em] bg-white/5 px-2 py-1 rounded-lg border border-white/5">
+              <div className="flex items-center gap-2 mb-3">
+                 <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
                    {post.category}
                  </span>
-                 <span className="text-[8px] font-bold text-gray-500">@{post.username}</span>
+                 <span className="text-[9px] font-bold text-gray-500">@{post.username}</span>
               </div>
               
               <h3 className={`font-black text-white leading-tight drop-shadow-2xl ${variant === 'featured' ? 'text-2xl md:text-3xl' : 'text-lg line-clamp-2'}`}>
                 {post.title}
               </h3>
               
-              <p className="text-gray-400 font-medium text-xs mt-2 line-clamp-2 leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity">
+              <p className="text-gray-400 font-medium text-xs mt-3 line-clamp-2 leading-relaxed opacity-60 group-hover:opacity-100 transition-opacity">
                 {post.description}
               </p>
               
-              <div className="flex items-center space-x-4 pt-4 mt-4 border-t border-white/5">
+              <div className="flex items-center space-x-4 pt-5 mt-5 border-t border-white/5">
                 <button onClick={toggleLike} className={`flex items-center space-x-1.5 text-xs transition-all ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-400'}`}>
-                  <Heart size={14} className={isLiked ? 'fill-current' : ''} />
+                  <Heart size={15} className={isLiked ? 'fill-current' : ''} />
                   <span className="font-black">{likes}</span>
                 </button>
                 <div className="flex items-center space-x-1.5 text-gray-400 text-xs font-black">
-                  <Eye size={14} />
+                  <Eye size={15} />
                   <span>{views}</span>
                 </div>
               </div>

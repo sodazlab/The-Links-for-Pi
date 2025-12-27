@@ -13,12 +13,11 @@ const Admin: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Unified Modal state
   const [modal, setModal] = useState<{
     isOpen: boolean;
     title: string;
     message: string;
-    type: 'confirm' | 'error' | 'success' | 'warning';
+    type: 'confirm' | 'error' | 'success';
     showCancel?: boolean;
     onConfirm?: () => Promise<void> | void;
     confirmText?: string;
@@ -42,22 +41,17 @@ const Admin: React.FC = () => {
     setLoading(false);
   };
 
-  const handleRefresh = () => {
-    loadPosts();
-  };
-
   const handleStatusChange = async (id: string, newStatus: PostStatus) => {
-    // Optimistic filter
     const originalPosts = [...posts];
-    setPosts(prev => prev.filter(p => String(p.id) !== String(id)));
+    setPosts(prev => prev.filter(p => String(p.id).trim() !== String(id).trim()));
     
     const err = await db.updatePostStatus(id, newStatus);
     if (err) {
-      setPosts(originalPosts); // Revert
+      setPosts(originalPosts);
       setModal({
         isOpen: true,
         title: 'Action Failed',
-        message: 'The server could not update the post status.',
+        message: 'Could not update status. Please check your connection.',
         type: 'error'
       });
     }
@@ -67,22 +61,21 @@ const Admin: React.FC = () => {
     setModal({
       isOpen: true,
       title: 'Delete Permanently?',
-      message: 'This submission will be completely erased from the database. This action is irreversible.',
+      message: 'This action will completely erase the submission from the community feed and database.',
       type: 'confirm',
       showCancel: true,
       confirmText: 'Delete Now',
       onConfirm: async () => {
-        // Optimistic UI
         const originalPosts = [...posts];
-        setPosts(prev => prev.filter(p => String(p.id) !== String(id)));
+        setPosts(prev => prev.filter(p => String(p.id).trim() !== String(id).trim()));
         
         const { error: dbError } = await db.deletePost(id);
         if (dbError) {
-          setPosts(originalPosts); // Revert
+          setPosts(originalPosts);
           setModal({
             isOpen: true,
             title: 'Deletion Failed',
-            message: 'An error occurred while deleting from the database.',
+            message: 'An error occurred during deletion. The post may already be removed.',
             type: 'error'
           });
         }
@@ -109,7 +102,7 @@ const Admin: React.FC = () => {
             <KeyRound size={32} className="text-purple-400" />
           </div>
           <h1 className="text-2xl font-black text-white mb-2">Security Access</h1>
-          <p className="text-gray-500 text-xs mb-8 font-bold uppercase tracking-widest">Admin Portal Restricted</p>
+          <p className="text-gray-500 text-xs mb-8 font-bold uppercase tracking-widest">Admin Authorization</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <input 
@@ -121,7 +114,7 @@ const Admin: React.FC = () => {
               autoFocus 
             />
             {error && <p className="text-red-400 text-[10px] font-black uppercase tracking-widest">{error}</p>}
-            <button type="submit" className="w-full py-4 rounded-2xl font-black text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition shadow-lg shadow-purple-900/20 uppercase text-[10px] tracking-[0.2em]">Verify Identity</button>
+            <button type="submit" className="w-full py-4 rounded-2xl font-black text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition shadow-lg shadow-purple-900/20 uppercase text-[10px] tracking-widest">Verify Access</button>
           </form>
         </div>
       </div>
@@ -133,18 +126,17 @@ const Admin: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
         <div>
           <h1 className="text-3xl font-black text-white flex items-center gap-4">
-            <LayoutList className="text-purple-400 w-8 h-8" />
-            Curation
+            <LayoutList className="text-purple-400 w-8 h-8" /> Moderation
           </h1>
-          <p className="text-gray-500 text-xs mt-2 font-black uppercase tracking-[0.3em]">Management Console</p>
+          <p className="text-gray-500 text-xs mt-2 font-black uppercase tracking-[0.2em]">Pioneer Content Control</p>
         </div>
 
-        <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 w-full md:w-auto overflow-x-auto no-scrollbar">
+        <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10">
           {(['pending', 'approved', 'rejected'] as PostStatus[]).map((status) => (
             <button 
               key={status} 
               onClick={() => setActiveTab(status)} 
-              className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black transition-all capitalize tracking-widest ${activeTab === status ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black transition-all capitalize tracking-widest ${activeTab === status ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
             >
               {status}
             </button>
@@ -154,107 +146,64 @@ const Admin: React.FC = () => {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between px-2 text-[10px] font-black uppercase tracking-widest text-gray-600">
-          <span>{posts.length} submissions</span>
-          <button 
-            onClick={handleRefresh} 
-            className="flex items-center gap-2 hover:text-purple-400 transition"
-          >
-            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-            Refresh Queue
+          <span>{posts.length} Items Found</span>
+          <button onClick={loadPosts} className="flex items-center gap-2 hover:text-purple-400 transition">
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Sync Queue
           </button>
         </div>
 
-        {loading && (
+        {loading ? (
           <div className="py-24 text-center">
             <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4 opacity-50" />
-            <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">Fetching from database...</p>
+            <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">Retrieving Submissions...</p>
           </div>
-        )}
-
-        {!loading && posts.length === 0 && (
+        ) : posts.length === 0 ? (
           <div className="py-32 text-center bg-white/[0.02] rounded-[3rem] border border-white/5 border-dashed">
             <CheckCircle size={40} className="text-gray-800 mx-auto mb-4" />
-            <p className="text-gray-700 font-black uppercase tracking-[0.4em] text-xs">Queue is empty</p>
+            <p className="text-gray-700 font-black uppercase tracking-[0.2em] text-xs">Queue is currently clear</p>
           </div>
-        )}
-
-        {!loading && posts.map(post => (
-          <div key={post.id} className="group bg-[#1a1a20] border border-white/5 rounded-[2.5rem] p-6 lg:p-8 hover:border-purple-500/30 transition-all duration-500 shadow-sm hover:shadow-2xl hover:bg-[#1e1e24]">
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="flex items-start gap-5 flex-1 min-w-0">
-                <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center border border-white/5 shadow-inner ${activeTab === 'pending' ? 'bg-yellow-500/5 text-yellow-500' : activeTab === 'approved' ? 'bg-green-500/5 text-green-500' : 'bg-red-500/5 text-red-500'}`}>
-                  {activeTab === 'pending' && <Clock size={24} />}
-                  {activeTab === 'approved' && <CheckCircle size={24} />}
-                  {activeTab === 'rejected' && <AlertTriangle size={24} />}
-                </div>
-                
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <span className="text-[9px] font-black px-3 py-1 rounded-lg bg-white/5 text-gray-400 uppercase tracking-widest border border-white/5">{post.category}</span>
-                    <span className="text-[9px] font-bold text-gray-600 tracking-wide">@{post.username}</span>
+        ) : (
+          posts.map(post => (
+            <div key={post.id} className="group bg-[#1a1a20] border border-white/5 rounded-[2.5rem] p-6 lg:p-8 hover:border-purple-500/30 transition-all duration-500 shadow-sm hover:shadow-2xl hover:bg-[#1e1e24]">
+              <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex items-start gap-5 flex-1 min-w-0">
+                  <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center border border-white/5 shadow-inner ${activeTab === 'pending' ? 'bg-yellow-500/5 text-yellow-500' : activeTab === 'approved' ? 'bg-green-500/5 text-green-500' : 'bg-red-500/5 text-red-500'}`}>
+                    {activeTab === 'pending' && <Clock size={24} />}
+                    {activeTab === 'approved' && <CheckCircle size={24} />}
+                    {activeTab === 'rejected' && <AlertTriangle size={24} />}
                   </div>
-                  <h3 className="font-black text-white text-lg leading-tight mb-1">{post.title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-2">{post.description}</p>
-                  <a href={post.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[9px] font-black text-blue-500 hover:text-blue-400 transition-all bg-blue-500/5 px-3 py-1.5 rounded-lg border border-blue-500/10">
-                    <ExternalLink size={10} />
-                    <span className="truncate max-w-[200px]">{post.url}</span>
-                  </a>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <span className="text-[9px] font-black px-3 py-1 rounded-lg bg-white/5 text-gray-400 uppercase tracking-widest border border-white/5">{post.category}</span>
+                      <span className="text-[9px] font-bold text-gray-600 tracking-wide">@{post.username}</span>
+                    </div>
+                    <h3 className="font-black text-white text-lg leading-tight mb-2">{post.title}</h3>
+                    <p className="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-2">{post.description}</p>
+                    <a href={post.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[9px] font-black text-blue-500 hover:text-blue-400 bg-blue-500/5 px-3 py-1.5 rounded-lg border border-blue-500/10">
+                      <ExternalLink size={10} /> <span className="truncate max-w-[200px]">{post.url}</span>
+                    </a>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-end gap-2 w-full lg:w-auto border-t lg:border-t-0 border-white/5 pt-4 lg:pt-0">
-                {activeTab === 'pending' && (
-                  <>
-                    <button 
-                      onClick={() => handleStatusChange(post.id, 'rejected')} 
-                      className="flex-1 lg:flex-none h-12 px-5 rounded-2xl bg-white/5 text-gray-400 hover:text-red-400 border border-white/5 transition flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"
-                    >
-                      <X size={16} /> <span className="lg:hidden">Reject</span>
-                    </button>
-                    <button 
-                      onClick={() => handleStatusChange(post.id, 'approved')} 
-                      className="flex-1 lg:flex-none h-12 px-5 rounded-2xl bg-purple-600 text-white hover:bg-purple-500 transition flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-purple-900/20"
-                    >
-                      <Check size={16} /> <span className="lg:hidden">Approve</span>
-                    </button>
-                  </>
-                )}
-                {activeTab === 'approved' && (
-                  <>
-                    <button 
-                      onClick={() => handleStatusChange(post.id, 'rejected')} 
-                      className="flex-1 lg:flex-none h-12 px-5 rounded-2xl bg-white/5 text-gray-400 hover:text-yellow-400 border border-white/5 transition flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"
-                    >
-                      <X size={16} /> <span className="lg:hidden">Suspend</span>
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(post.id)} 
-                      className="h-12 w-12 rounded-2xl bg-white/5 text-gray-400 hover:text-red-400 border border-white/5 transition flex items-center justify-center"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </>
-                )}
-                {activeTab === 'rejected' && (
-                  <>
-                    <button 
-                      onClick={() => handleStatusChange(post.id, 'pending')} 
-                      className="flex-1 lg:flex-none h-12 px-5 rounded-2xl bg-white/5 text-gray-400 hover:text-purple-400 border border-white/5 transition flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"
-                    >
-                      <RefreshCw size={16} /> <span className="lg:hidden">Restore</span>
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(post.id)} 
-                      className="h-12 w-12 rounded-2xl bg-white/5 text-gray-400 hover:text-red-400 border border-white/5 transition flex items-center justify-center"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </>
-                )}
+                <div className="flex items-center justify-end gap-2 w-full lg:w-auto border-t lg:border-t-0 border-white/5 pt-4 lg:pt-0">
+                  {activeTab === 'pending' && (
+                    <>
+                      <button onClick={() => handleStatusChange(post.id, 'rejected')} className="flex-1 lg:flex-none h-12 px-5 rounded-2xl bg-white/5 text-gray-400 hover:text-red-400 border border-white/5 transition flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"><X size={16} /><span className="lg:hidden">Reject</span></button>
+                      <button onClick={() => handleStatusChange(post.id, 'approved')} className="flex-1 lg:flex-none h-12 px-5 rounded-2xl bg-purple-600 text-white hover:bg-purple-500 transition flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-purple-900/20"><Check size={16} /><span className="lg:hidden">Approve</span></button>
+                    </>
+                  )}
+                  {activeTab !== 'pending' && (
+                    <>
+                      <button onClick={() => handleStatusChange(post.id, 'pending')} className="flex-1 lg:flex-none h-12 px-5 rounded-2xl bg-white/5 text-gray-400 hover:text-purple-400 border border-white/5 transition flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"><RefreshCw size={16} /><span className="lg:hidden">Restore</span></button>
+                      <button onClick={() => handleDelete(post.id)} className="h-12 w-12 rounded-2xl bg-white/5 text-gray-400 hover:text-red-400 border border-white/5 transition flex items-center justify-center"><Trash2 size={16} /></button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       <Modal 
