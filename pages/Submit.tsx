@@ -215,11 +215,11 @@ const Submit: React.FC = () => {
         </div>
 
         {/* Top Warning Banner */}
-        <div className="mb-8 bg-yellow-500/5 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-yellow-200/80 leading-relaxed">
-            <strong className="text-yellow-500 block mb-1 uppercase tracking-wider text-[10px]">Important</strong>
-            Please carefully review the <strong className="text-yellow-100">Submission Policy</strong> at the bottom of this page. Submissions violating these rules will be rejected without refund.
+        <div className="mb-8 bg-yellow-500/5 border border-yellow-500/20 rounded-2xl p-3 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+          <div className="text-xs text-yellow-200/80 leading-tight">
+            <span className="font-black text-yellow-500 uppercase tracking-wider text-[10px] mr-1">Important:</span>
+            Read the <strong className="text-yellow-100">Submission Policy</strong> below. Invalid posts are rejected without refund.
           </div>
         </div>
 
