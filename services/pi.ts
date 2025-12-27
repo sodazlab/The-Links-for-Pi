@@ -1,93 +1,95 @@
 import { PiAuthResult } from '../types';
 
-// Singleton promise to prevent multiple init calls
+/**
+ * Vercel 배포 시, 루트의 /api 폴더는 자동으로 서버리스 함수가 됩니다.
+ * 따라서 호출 주소는 '/api/파일명' 형식이 됩니다.
+ */
+const APPROVE_URL = '/api/approve'; 
+const COMPLETE_URL = '/api/complete'; 
+
 let initPromise: Promise<boolean> | null = null;
 
 export const PiService = {
-  /**
-   * Initializes the Pi SDK.
-   */
   init: (): Promise<boolean> => {
     if (initPromise) return initPromise;
-
     initPromise = (async () => {
       try {
-        if (!window.Pi) {
-          throw new Error("Pi SDK script is not loaded. Ensure <script src='https://sdk.minepi.com/pi-sdk.js'> is in index.html");
-        }
-
+        if (!window.Pi) return false;
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        console.log(`[Pi SDK] Initializing (v2.0). Mode: ${isLocal ? 'Sandbox' : 'Production'}`);
-
+        console.log(`[Pi SDK] Init. Sandbox: ${isLocal}`);
         await window.Pi.init({ version: '2.0', sandbox: isLocal });
-        console.log('[Pi SDK] Initialized.');
         return true;
-      } catch (err: any) {
-        console.error('[Pi SDK] Init Error:', err);
+      } catch (err) {
         initPromise = null;
         return false;
       }
     })();
-
     return initPromise;
   },
 
-  /**
-   * Authenticates user with 'payments' scope.
-   */
   authenticate: async (): Promise<PiAuthResult | null> => {
-    try {
-      const initialized = await PiService.init();
-      if (!initialized) throw new Error("SDK init failed.");
-
-      const scopes = ['username', 'payments']; 
-      const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-      return authResult as PiAuthResult;
-    } catch (err: any) {
-      console.error("[Pi Auth] Error:", err);
-      throw err; 
-    }
+    const initialized = await PiService.init();
+    if (!initialized) throw new Error("SDK init failed.");
+    return await window.Pi.authenticate(['username', 'payments'], onIncompletePaymentFound);
   },
 
-  /**
-   * Creates a payment of 1 Pi.
-   * FIX: Promise now resolves ONLY on completion to prevent "skipping" payment logic.
-   */
   createPayment: async (postId: string, title: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-      console.log(`[Pi Payment] Creating payment for: ${title}`);
+      console.log(`[Pi] Creating payment for post: ${postId}`);
       
       window.Pi.createPayment({
         amount: 1,
-        memo: `Submission Fee: ${title.substring(0, 20)}`,
-        metadata: { postId: postId, type: 'post_fee' },
+        memo: `Curation Fee: ${title.substring(0, 20)}`,
+        metadata: { postId, type: 'post_fee' },
       }, {
-        onReadyForServerApproval: (paymentId: string) => {
-          /**
-           * WARNING: The "Preparing..." hang happens because the Pi API expects 
-           * your server to approve this paymentId.
-           * POST https://api.minepi.com/v2/payments/:payment_id/approve
-           */
-          console.log('[Pi Payment] Step 1: Server Approval Required. ID:', paymentId);
-          
-          // In a frontend-only demo, we can't call the REST API.
-          // BUT: Do NOT resolve here. Resolving here allows the app to "skip" payment.
+        onReadyForServerApproval: async (paymentId: string) => {
+          console.log('[Pi] Step 1: Telling Vercel Server to approve...');
+          try {
+            const resp = await fetch(APPROVE_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId })
+            });
+            
+            if (!resp.ok) {
+              const errData = await resp.json();
+              throw new Error(errData.error || "Server approval failed");
+            }
+            
+            console.log('[Pi] Step 1: Server approved. Wallet should open now.');
+          } catch (err) {
+            console.error('[Pi] Approval Request Failed:', err);
+            reject(err);
+          }
         },
-        onReadyForServerCompletion: (paymentId: string, txid: string) => {
-          /**
-           * Step 2: The user has signed the transaction in their wallet.
-           * The app server must now call /complete to finalize.
-           */
-          console.log('[Pi Payment] Step 2: Transaction Completed. TXID:', txid);
-          resolve(paymentId); // Resolve ONLY when the user actually pays.
+        onReadyForServerCompletion: async (paymentId: string, txid: string) => {
+          console.log('[Pi] Step 2: Telling Vercel Server to complete...');
+          try {
+            const resp = await fetch(COMPLETE_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId, txid })
+            });
+            
+            if (!resp.ok) {
+              const errData = await resp.json();
+              throw new Error(errData.error || "Server completion failed");
+            }
+            
+            console.log('[Pi] Step 2: Payment fully confirmed by server.');
+            resolve(paymentId);
+          } catch (err) {
+            console.error('[Pi] Completion Request Failed:', err);
+            reject(err);
+          }
         },
         onCancel: (paymentId: string) => {
-          console.warn('[Pi Payment] User cancelled:', paymentId);
+          console.log('[Pi] Payment cancelled by user.');
           reject(new Error('PAYMENT_CANCELLED'));
         },
-        onError: (error: Error, payment?: any) => {
-          console.error('[Pi Payment] Error:', error, payment);
-          reject(new Error(error.message || 'PAYMENT_FAILED'));
+        onError: (error: Error) => {
+          console.error('[Pi] Payment Error:', error);
+          reject(new Error(error.message));
         }
       });
     });
@@ -95,5 +97,5 @@ export const PiService = {
 };
 
 function onIncompletePaymentFound(payment: any) {
-  console.log('[Pi SDK] Incomplete payment found:', payment);
+  console.log('Incomplete payment found:', payment);
 }
