@@ -13,9 +13,10 @@ export const PiService = {
     initPromise = (async () => {
       try {
         if (!window.Pi) {
-          throw new Error("Pi SDK script is not loaded. Ensure <script src='https://sdk.minepi.com/pi-sdk.js'> is in index.html");
+          throw new Error("Pi SDK script is not loaded. Check index.html.");
         }
 
+        // Determine environment
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         console.log(`[Pi SDK] Initializing (v2.0). Environment: ${isLocal ? 'Sandbox' : 'Production'}`);
 
@@ -34,49 +35,59 @@ export const PiService = {
 
   /**
    * Authenticates the user with necessary scopes.
+   * 'payments' scope is mandatory for createPayment.
    */
   authenticate: async (): Promise<PiAuthResult | null> => {
     try {
       const initialized = await PiService.init();
-      if (!initialized) throw new Error("SDK initialization failed.");
+      if (!initialized) throw new Error("Pi SDK failed to initialize.");
 
-      // Essential: 'payments' scope is required for any transaction.
       const scopes = ['username', 'payments']; 
       const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
       return authResult as PiAuthResult;
     } catch (err: any) {
-      console.error("[Pi Auth] Error:", err);
+      console.error("[Pi Auth] Authentication Error:", err);
       throw err; 
     }
   },
 
   /**
-   * Creates a payment of 1 Pi for post submission.
+   * Creates a payment of 1 Pi.
+   * Based on: https://github.com/pi-apps/pi-platform-docs/blob/master/payments.md
    */
   createPayment: async (postId: string, title: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-      console.log(`[Pi Payment] Initiating 1 Pi payment for post: ${postId}`);
+      console.log(`[Pi Payment] Starting transaction for post: ${postId}`);
       
       window.Pi.createPayment({
         amount: 1,
-        memo: `Curation Fee: ${title.substring(0, 30)}`,
+        memo: `Curation Fee: ${title.substring(0, 25)}...`,
         metadata: { postId: postId, type: 'link_submission' },
       }, {
         onReadyForServerApproval: (paymentId: string) => {
-          console.log('[Pi Payment] Ready for Server Approval:', paymentId);
-          // In this client-side demo, we resolve here to allow the UI to proceed.
-          // In production, you MUST call your backend to approve the payment via Pi API.
+          /**
+           * CRITICAL: In a production app, you MUST send paymentId to YOUR backend.
+           * Your backend must then call: POST https://api.minepi.com/v2/payments/:payment_id/approve
+           * Without this, the Pi Wallet will not open for the user to confirm.
+           */
+          console.log('[Pi Payment] Step 1: Ready for Server Approval. ID:', paymentId);
+          
+          // Simulation: For this demo, we proceed, but real payments need server approval.
           resolve(paymentId);
         },
         onReadyForServerCompletion: (paymentId: string, txid: string) => {
-          console.log('[Pi Payment] Transaction Completed:', txid);
+          /**
+           * Step 2: User has paid in the wallet.
+           * Your backend must call: POST https://api.minepi.com/v2/payments/:payment_id/complete
+           */
+          console.log('[Pi Payment] Step 2: Transaction complete on blockchain. TXID:', txid);
         },
         onCancel: (paymentId: string) => {
-          console.warn('[Pi Payment] Cancelled by user:', paymentId);
+          console.warn('[Pi Payment] Transaction cancelled by user:', paymentId);
           reject(new Error('PAYMENT_CANCELLED'));
         },
         onError: (error: Error, payment?: any) => {
-          console.error('[Pi Payment] Critical Error:', error, payment);
+          console.error('[Pi Payment] Transaction failed:', error, payment);
           reject(new Error(error.message || 'PAYMENT_FAILED'));
         }
       });
@@ -85,6 +96,5 @@ export const PiService = {
 };
 
 function onIncompletePaymentFound(payment: any) {
-  console.log('[Pi SDK] Incomplete payment detected:', payment);
-  // Optional: Implement logic to resume or cancel incomplete payments.
+  console.log('[Pi SDK] Incomplete payment detected. You may need to call /complete on your server.', payment);
 }
