@@ -58,10 +58,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     if (!user) {
       setModalConfig({
         isOpen: true,
-        title: 'Join the Community',
-        message: 'Please connect your Pi wallet to interact with posts and show your support.',
+        title: '커뮤니티 참여',
+        message: 'Pi 지갑을 연결하여 포스트에 좋아요를 누르고 소통해 보세요.',
         type: 'warning',
-        confirmText: 'Got it'
+        confirmText: '확인'
       });
       return;
     }
@@ -97,21 +97,22 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     
     setModalConfig({
       isOpen: true,
-      title: 'Remove Submission?',
-      message: 'This link will be permanently erased from your history and the community feed.',
+      title: '정말 삭제하시겠습니까?',
+      message: '공유하신 링크가 커뮤니티 피드와 내 기록에서 완전히 제거됩니다.',
       type: 'confirm',
       showCancel: true,
-      confirmText: 'Yes, Delete',
+      confirmText: '삭제하기',
       onConfirm: async () => {
         const { error } = await db.deletePost(post.id);
         if (error) {
           setModalConfig({
             isOpen: true,
-            title: 'Action Failed',
-            message: 'Unable to remove the post at this time. Please try again.',
+            title: '작업 실패',
+            message: '게시물을 삭제하는 중 오류가 발생했습니다. 다시 시도해 주세요.',
             type: 'error'
           });
         } else {
+          // 삭제 성공 시에만 카드 제거
           setIsRemoved(true);
         }
       }

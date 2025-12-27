@@ -13,7 +13,7 @@ const getMockPosts = (): Post[] => {
   } catch (e) {
     console.error('Failed to parse mock posts', e);
   }
-  // Initialize and persist if nothing exists
+  // 기본 데이터로 초기화 및 저장
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(MOCK_POSTS));
   return MOCK_POSTS;
 };
@@ -142,14 +142,18 @@ export const db = {
   deletePost: async (postId: string) => {
     if (!isConfigured) {
       const posts = getMockPosts();
+      // ID를 문자열로 변환하여 엄격하게 비교 후 필터링
       const filtered = posts.filter(p => String(p.id).trim() !== String(postId).trim());
       saveMockPosts(filtered);
       return { error: null };
     }
 
     try {
+      // 외래 키 제약 조건 방지를 위해 관련 좋아요 먼저 삭제 시도
       await supabase.from('likes').delete().eq('post_id', postId);
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Likes cleanup ignored or failed');
+    }
 
     const { error } = await supabase.from('posts').delete().eq('id', postId);
     return { error };
@@ -188,12 +192,13 @@ export const db = {
       const posts = getMockPosts();
       let updatedPosts = [...posts];
       
+      const targetId = String(postId).trim();
       if (exists) {
         localStorage.removeItem(key);
-        updatedPosts = updatedPosts.map(p => String(p.id).trim() === String(postId).trim() ? { ...p, likesCount: Math.max(0, p.likesCount - 1) } : p);
+        updatedPosts = updatedPosts.map(p => String(p.id).trim() === targetId ? { ...p, likesCount: Math.max(0, p.likesCount - 1) } : p);
       } else {
         localStorage.setItem(key, 'true');
-        updatedPosts = updatedPosts.map(p => String(p.id).trim() === String(postId).trim() ? { ...p, likesCount: p.likesCount + 1 } : p);
+        updatedPosts = updatedPosts.map(p => String(p.id).trim() === targetId ? { ...p, likesCount: p.likesCount + 1 } : p);
       }
       saveMockPosts(updatedPosts);
       return null;
@@ -205,7 +210,8 @@ export const db = {
   incrementView: async (postId: string) => {
     if (!isConfigured) {
       const posts = getMockPosts();
-      const updated = posts.map(p => String(p.id).trim() === String(postId).trim() ? { ...p, viewsCount: p.viewsCount + 1 } : p);
+      const targetId = String(postId).trim();
+      const updated = posts.map(p => String(p.id).trim() === targetId ? { ...p, viewsCount: p.viewsCount + 1 } : p);
       saveMockPosts(updated);
       return null;
     }

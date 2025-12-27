@@ -17,7 +17,7 @@ const Admin: React.FC = () => {
     isOpen: boolean;
     title: string;
     message: string;
-    type: 'confirm' | 'error' | 'success';
+    type: 'confirm' | 'error' | 'success' | 'warning';
     showCancel?: boolean;
     onConfirm?: () => Promise<void> | void;
     confirmText?: string;
@@ -42,42 +42,46 @@ const Admin: React.FC = () => {
   };
 
   const handleStatusChange = async (id: string, newStatus: PostStatus) => {
-    const originalPosts = [...posts];
-    setPosts(prev => prev.filter(p => String(p.id).trim() !== String(id).trim()));
+    const targetId = String(id).trim();
+    // Optimistic UI Update: 즉시 필터링
+    setPosts(prev => prev.filter(p => String(p.id).trim() !== targetId));
     
     const err = await db.updatePostStatus(id, newStatus);
     if (err) {
-      setPosts(originalPosts);
+      // 실패 시 다시 로드하여 동기화
+      loadPosts();
       setModal({
         isOpen: true,
-        title: 'Action Failed',
-        message: 'Could not update status. Please check your connection.',
+        title: '변경 실패',
+        message: '상태를 업데이트하는 중 오류가 발생했습니다.',
         type: 'error'
       });
     }
   };
 
   const handleDelete = (id: string) => {
+    const targetId = String(id).trim();
     setModal({
       isOpen: true,
-      title: 'Delete Permanently?',
-      message: 'This action will completely erase the submission from the community feed and database.',
+      title: '영구 삭제하시겠습니까?',
+      message: '이 작업은 되돌릴 수 없으며 모든 데이터가 삭제됩니다.',
       type: 'confirm',
       showCancel: true,
-      confirmText: 'Delete Now',
+      confirmText: '삭제하기',
       onConfirm: async () => {
-        const originalPosts = [...posts];
-        setPosts(prev => prev.filter(p => String(p.id).trim() !== String(id).trim()));
+        // DB 삭제 시도
+        const { error: dbError } = await db.deletePost(targetId);
         
-        const { error: dbError } = await db.deletePost(id);
         if (dbError) {
-          setPosts(originalPosts);
           setModal({
             isOpen: true,
-            title: 'Deletion Failed',
-            message: 'An error occurred during deletion. The post may already be removed.',
+            title: '삭제 실패',
+            message: '서버 오류로 인해 삭제하지 못했습니다.',
             type: 'error'
           });
+        } else {
+          // 성공 시 UI 업데이트
+          setPosts(prev => prev.filter(p => String(p.id).trim() !== targetId));
         }
       }
     });
@@ -89,7 +93,7 @@ const Admin: React.FC = () => {
       loginAsAdmin();
       setError('');
     } else {
-      setError('Invalid Access PIN.');
+      setError('올바른 PIN 번호를 입력하세요.');
       setPassword('');
     }
   };
@@ -101,7 +105,7 @@ const Admin: React.FC = () => {
           <div className="w-20 h-20 bg-purple-500/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8 border border-purple-500/20">
             <KeyRound size={32} className="text-purple-400" />
           </div>
-          <h1 className="text-2xl font-black text-white mb-2">Security Access</h1>
+          <h1 className="text-2xl font-black text-white mb-2">관리자 접속</h1>
           <p className="text-gray-500 text-xs mb-8 font-bold uppercase tracking-widest">Admin Authorization</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
