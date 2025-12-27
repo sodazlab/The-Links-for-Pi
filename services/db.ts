@@ -84,11 +84,6 @@ export const db = {
     }));
   },
 
-  // Fetch pending posts (Deprecated in favor of getPostsByStatus, kept for backward compat if needed)
-  getPendingPosts: async (): Promise<Post[]> => {
-    return db.getPostsByStatus('pending');
-  },
-
   // Create a new post
   createPost: async (post: Partial<Post>) => {
     // Generate a placeholder image if none provided
@@ -132,7 +127,7 @@ export const db = {
         views_count: 0,
         image_url: imageToSave
       }])
-      .select(); // Ensure we get the return data
+      .select(); 
     
     if (error) {
       console.error('Error creating post:', error.message || error);
@@ -169,25 +164,37 @@ export const db = {
 
   // Delete a post
   deletePost: async (postId: string) => {
+    console.log(`Attempting to delete post: ${postId}`);
+    
     if (!isConfigured) {
       // Mock Mode
       const posts = getMockPosts();
       const filteredPosts = posts.filter(p => p.id !== postId);
       saveMockPosts(filteredPosts);
+      console.log(`Mock deletion complete for ID: ${postId}. Count: ${filteredPosts.length}`);
       return { error: null };
     }
 
-    // 1. First delete related likes to avoid Foreign Key Constraint errors
-    await supabase.from('likes').delete().eq('post_id', postId);
+    // 1. Delete likes
+    try {
+      await supabase.from('likes').delete().eq('post_id', postId);
+    } catch (e) {
+      console.warn("Could not delete related likes, might not exist.");
+    }
 
-    // 2. Then delete the post
-    const { error } = await supabase
+    // 2. Delete the post
+    const { error, count } = await supabase
       .from('posts')
       .delete()
       .eq('id', postId);
 
-    if (error) console.error('Error deleting post:', error.message);
-    return { error };
+    if (error) {
+      console.error('Error deleting post:', error.message);
+      return { error };
+    }
+
+    console.log(`Supabase deletion successful for ID: ${postId}`);
+    return { error: null };
   },
 
   // Update post status
@@ -197,7 +204,7 @@ export const db = {
       const posts = getMockPosts();
       const updated = posts.map(p => p.id === id ? { ...p, status } : p);
       saveMockPosts(updated);
-      return null; // no error
+      return null;
     }
 
     const { error } = await supabase
@@ -212,7 +219,6 @@ export const db = {
   // Check if user liked a post
   checkUserLike: async (postId: string, userId: string): Promise<boolean> => {
     if (!isConfigured) {
-      // Mock Mode: Simple localstorage check
       const key = `like_${userId}_${postId}`;
       return !!localStorage.getItem(key);
     }
@@ -230,62 +236,31 @@ export const db = {
   // Toggle Like (RPC)
   toggleLike: async (postId: string, userId: string) => {
     if (!isConfigured) {
-      // Mock Mode: Toggle local state
       const key = `like_${userId}_${postId}`;
       const exists = localStorage.getItem(key);
-      
       const posts = getMockPosts();
       let updatedPosts = [...posts];
       
       if (exists) {
         localStorage.removeItem(key);
-        // Decrement mock count
         updatedPosts = updatedPosts.map(p => p.id === postId ? { ...p, likesCount: Math.max(0, p.likesCount - 1) } : p);
       } else {
         localStorage.setItem(key, 'true');
-        // Increment mock count
         updatedPosts = updatedPosts.map(p => p.id === postId ? { ...p, likesCount: p.likesCount + 1 } : p);
       }
       saveMockPosts(updatedPosts);
       return null;
     }
 
-    // Try RPC first (best for concurrency)
     const { error } = await supabase
       .rpc('toggle_like', { post_id_input: postId, user_id_input: userId });
       
-    if (error) {
-        console.error('Error toggling like (RPC):', error.message);
-        // Fallback: If RPC fails (e.g., function not created), try manual insert/delete
-        // This is less safe for concurrency but works for basic setups
-        const { data: existingLike } = await supabase
-            .from('likes')
-            .select('id')
-            .eq('post_id', postId)
-            .eq('user_id', userId)
-            .single();
-
-        if (existingLike) {
-            await supabase.from('likes').delete().eq('id', existingLike.id);
-            await supabase.rpc('decrement_likes', { post_id_input: postId }).catch(() => {
-                 // manual update if rpc missing
-                 // This part is tricky without rpc, so we just log
-                 console.warn("Could not decrement likes count without RPC");
-            });
-        } else {
-            await supabase.from('likes').insert([{ post_id: postId, user_id: userId }]);
-             await supabase.rpc('increment_likes', { post_id_input: postId }).catch(() => {
-                 console.warn("Could not increment likes count without RPC");
-            });
-        }
-    }
     return error;
   },
 
   // Increment View (RPC)
   incrementView: async (postId: string) => {
     if (!isConfigured) {
-      // Mock Mode
       const posts = getMockPosts();
       const updated = posts.map(p => p.id === postId ? { ...p, viewsCount: p.viewsCount + 1 } : p);
       saveMockPosts(updated);
@@ -295,11 +270,6 @@ export const db = {
     const { error } = await supabase
       .rpc('increment_view', { post_id_input: postId });
 
-    if (error) {
-         console.error('Error incrementing view:', error.message || error);
-         // Fallback if RPC is missing
-         // We generally don't manually update views from client to avoid spam, so we just ignore if RPC fails
-    }
     return error;
   }
 };
