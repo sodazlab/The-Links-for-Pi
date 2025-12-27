@@ -37,7 +37,8 @@ export const PiService = {
       const initialized = await PiService.init();
       if (!initialized) throw new Error("SDK initialization failed.");
 
-      const scopes = ['username']; 
+      // 'payments' 스코프가 있어야 결제 API를 호출할 수 있습니다.
+      const scopes = ['username', 'payments']; 
       const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
       return authResult as PiAuthResult;
     } catch (err: any) {
