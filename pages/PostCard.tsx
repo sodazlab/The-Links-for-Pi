@@ -188,11 +188,15 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
                  <span className="text-[9px] font-bold text-gray-500">@{post.username}</span>
               </div>
               
-              <h3 className={`font-black text-white leading-tight drop-shadow-2xl ${variant === 'featured' ? 'text-xl md:text-2xl' : 'text-base line-clamp-2'}`}>
+              <h3 className={`font-black text-white leading-tight drop-shadow-2xl ${variant === 'featured' ? 'text-2xl md:text-3xl' : 'text-lg md:text-xl line-clamp-2'}`}>
                 {post.title}
               </h3>
               
-              <p className="text-gray-400 font-medium text-[10px] mt-2 line-clamp-2 leading-relaxed opacity-60 group-hover:opacity-100 transition-opacity">
+              <p className={`font-medium mt-3 line-clamp-2 leading-relaxed transition-opacity ${
+                variant === 'featured' 
+                  ? 'text-sm md:text-base text-gray-200 opacity-90' 
+                  : 'text-xs md:text-sm text-gray-300 opacity-80 group-hover:opacity-100'
+              }`}>
                 {post.description}
               </p>
               
