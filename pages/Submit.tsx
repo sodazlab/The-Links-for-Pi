@@ -4,13 +4,13 @@ import { useAuth } from '../services/authContext';
 import { db } from '../services/db';
 import { CheckCircle, AlertCircle, Loader2, Save } from 'lucide-react';
 import { PostCategory, Post } from '../types';
+import Modal from '../components/Modal';
 
 const Submit: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check if we are editing an existing post
   const editModePost = location.state?.post as Post | undefined;
   const isEditMode = !!editModePost;
 
@@ -20,7 +20,20 @@ const Submit: React.FC = () => {
   const [detectedCategory, setDetectedCategory] = useState<PostCategory>('other');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize form if in edit mode
+  // Modal State
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning';
+    onClose?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'success'
+  });
+
   useEffect(() => {
     if (editModePost) {
       setUrl(editModePost.url);
@@ -30,7 +43,6 @@ const Submit: React.FC = () => {
     }
   }, [editModePost]);
 
-  // Auto-detect category
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setUrl(val);
@@ -53,7 +65,6 @@ const Submit: React.FC = () => {
     try {
       let result;
       if (isEditMode && editModePost) {
-        // Update existing post
         result = await db.updatePost(editModePost.id, {
           title,
           description,
@@ -61,7 +72,6 @@ const Submit: React.FC = () => {
           category: detectedCategory
         });
       } else {
-        // Create new post
         result = await db.createPost({
           userId: user.id,
           username: user.username,
@@ -73,22 +83,34 @@ const Submit: React.FC = () => {
       }
 
       if (result.error) {
-        console.error('Submission error:', result.error);
         const errorMessage = typeof result.error === 'object' && 'message' in result.error 
           ? (result.error as any).message 
           : JSON.stringify(result.error);
-        alert(`Error: ${errorMessage}`);
+        
+        setModal({
+          isOpen: true,
+          title: 'Error Occurred',
+          message: errorMessage,
+          type: 'error'
+        });
       } else {
-        // Small delay for UX
-        setTimeout(() => {
-          alert(isEditMode ? 'Post updated successfully!' : 'Post submitted for approval!');
-          navigate('/');
-        }, 500);
+        setModal({
+          isOpen: true,
+          title: isEditMode ? 'Updated Successfully' : 'Submission Received',
+          message: isEditMode 
+            ? 'Your changes have been saved.' 
+            : 'Your link has been sent for review and will be live once approved.',
+          type: 'success',
+          onClose: () => navigate('/')
+        });
       }
     } catch (err: any) {
-      console.error('Unexpected error during submission:', err);
-      const msg = err?.message || String(err);
-      alert(`An unexpected error occurred: ${msg}`);
+      setModal({
+        isOpen: true,
+        title: 'System Error',
+        message: err?.message || 'Failed to communicate with the database.',
+        type: 'error'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -97,10 +119,10 @@ const Submit: React.FC = () => {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-center p-8 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md">
-          <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white">Access Denied</h2>
-          <p className="text-gray-400 mt-2 mb-4">You must verify your wallet to submit links.</p>
+        <div className="text-center p-8 border border-white/10 rounded-[2rem] bg-white/5 backdrop-blur-md max-w-sm">
+          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white">Access Denied</h2>
+          <p className="text-gray-400 mt-2 mb-4">Pioneers must connect their wallet to share links with the community.</p>
         </div>
       </div>
     );
@@ -108,86 +130,43 @@ const Submit: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8 animate-fade-in-up">
-      <div className="bg-[#16161e] border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
-        <h1 className="text-3xl font-bold text-white mb-2">
-          {isEditMode ? 'Edit Post' : 'Submit a Link'}
-        </h1>
-        <p className="text-gray-400 mb-8">
-          {isEditMode ? 'Update your content details.' : 'Share high-quality Pi Network content with the community.'}
-        </p>
+      <div className="bg-[#16161e] border border-white/10 rounded-[2.5rem] p-6 md:p-10 shadow-2xl">
+        <h1 className="text-3xl font-bold text-white mb-2">{isEditMode ? 'Edit Post' : 'Submit a Link'}</h1>
+        <p className="text-gray-400 mb-8">{isEditMode ? 'Update your content details.' : 'Share high-quality Pi Network content.'}</p>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Link URL</label>
-            <div className="flex flex-col gap-3">
-              <input 
-                type="url" 
-                required
-                value={url}
-                onChange={handleUrlChange}
-                placeholder="https://..."
-                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition"
-              />
-              
-              <div className="flex items-center gap-2 animate-fade-in">
-                <span className="text-sm text-gray-500">Detected Category:</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border transition-all duration-300 ${
-                  detectedCategory !== 'other' 
-                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.2)]' 
-                    : 'bg-white/5 text-gray-500 border-white/10'
-                }`}>
-                  {detectedCategory === 'x' ? 'X (Twitter)' : detectedCategory}
-                </span>
-              </div>
+            <label className="text-sm font-semibold text-gray-400 ml-1">Link URL</label>
+            <input type="url" required value={url} onChange={handleUrlChange} placeholder="https://..." className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" />
+            <div className="flex items-center gap-2 mt-2 ml-1">
+              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Type:</span>
+              <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${detectedCategory !== 'other' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'bg-white/5 text-gray-500 border-white/10'}`}>{detectedCategory}</span>
             </div>
           </div>
-
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Title</label>
-            <input 
-              type="text" 
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="What is this content about?"
-              maxLength={60}
-              className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition"
-            />
+            <label className="text-sm font-semibold text-gray-400 ml-1">Headline</label>
+            <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Eye-catching title..." maxLength={60} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" />
           </div>
-
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Description</label>
-            <textarea 
-              required
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add a brief summary..."
-              rows={4}
-              maxLength={200}
-              className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition resize-none"
-            />
+            <label className="text-sm font-semibold text-gray-400 ml-1">Short Description</label>
+            <textarea required value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell the community why this is valuable..." rows={4} maxLength={200} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition resize-none shadow-inner" />
           </div>
-
-          <button 
-            type="submit" 
-            disabled={isSubmitting}
-            className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition ${isSubmitting ? 'bg-gray-700 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90'}`}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {isEditMode ? 'Updating...' : 'Submitting...'}
-              </>
-            ) : (
-              <>
-                {isEditMode ? <Save className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
-                {isEditMode ? 'Update Post' : 'Submit for Review'}
-              </>
-            )}
+          <button type="submit" disabled={isSubmitting} className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition shadow-xl ${isSubmitting ? 'bg-gray-800 cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 shadow-purple-900/20'}`}>
+            {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Processing...</> : <>{isEditMode ? <Save className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}{isEditMode ? 'Update Changes' : 'Publish Link'}</>}
           </button>
         </form>
       </div>
+
+      <Modal 
+        isOpen={modal.isOpen}
+        onClose={() => {
+          setModal(prev => ({ ...prev, isOpen: false }));
+          if (modal.onClose) modal.onClose();
+        }}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+      />
     </div>
   );
 };
