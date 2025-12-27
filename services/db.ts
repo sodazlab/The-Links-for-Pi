@@ -2,7 +2,6 @@ import { supabase, isConfigured } from './supabase';
 import { Post, PostStatus } from '../types';
 import { MOCK_POSTS } from './mockData';
 
-// Helper for Mock Mode persistence
 const LOCAL_STORAGE_KEY = 'pi_links_mock_posts';
 
 const getMockPosts = (): Post[] => {
@@ -12,9 +11,9 @@ const getMockPosts = (): Post[] => {
       return JSON.parse(stored);
     }
   } catch (e) {
-    console.warn('Failed to parse mock posts', e);
+    console.error('Failed to parse mock posts from localStorage', e);
   }
-  // Initialize with default mocks if empty or error
+  // Initialize and persist if nothing exists
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(MOCK_POSTS));
   return MOCK_POSTS;
 };
@@ -24,10 +23,8 @@ const saveMockPosts = (posts: Post[]) => {
 };
 
 export const db = {
-  // Fetch all approved posts
   getApprovedPosts: async (): Promise<Post[]> => {
     if (!isConfigured) {
-      // Mock Mode
       const posts = getMockPosts();
       return posts.filter(p => p.status === 'approved');
     }
@@ -39,7 +36,7 @@ export const db = {
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error('Error fetching posts:', error.message || error);
+      console.error('Error fetching approved posts:', error);
       return [];
     }
     
@@ -53,10 +50,8 @@ export const db = {
     }));
   },
 
-  // Fetch posts by specific status (Admin usage)
   getPostsByStatus: async (status: PostStatus): Promise<Post[]> => {
     if (!isConfigured) {
-      // Mock Mode
       const posts = getMockPosts();
       return posts
         .filter(p => p.status === status)
@@ -70,7 +65,7 @@ export const db = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error(`Error fetching ${status} posts:`, error.message || error);
+      console.error(`Error fetching ${status} posts:`, error);
       return [];
     }
     
@@ -84,13 +79,10 @@ export const db = {
     }));
   },
 
-  // Create a new post
   createPost: async (post: Partial<Post>) => {
-    // Generate a placeholder image if none provided
     const imageToSave = post.imageUrl || `https://picsum.photos/600/400?random=${Math.floor(Math.random() * 1000)}`;
 
     if (!isConfigured) {
-      // Mock Mode: Save to local storage
       const newPost: Post = {
         id: 'mock-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
         userId: post.userId || 'anon',
@@ -99,7 +91,7 @@ export const db = {
         description: post.description || '',
         url: post.url || '',
         category: post.category || 'other',
-        status: 'pending', // Default to pending
+        status: 'pending',
         likesCount: 0,
         viewsCount: 0,
         createdAt: new Date().toISOString(),
@@ -109,7 +101,6 @@ export const db = {
       const currentPosts = getMockPosts();
       const updatedPosts = [newPost, ...currentPosts];
       saveMockPosts(updatedPosts);
-      
       return { data: [newPost], error: null };
     }
 
@@ -128,21 +119,15 @@ export const db = {
         image_url: imageToSave
       }])
       .select(); 
-    
-    if (error) {
-      console.error('Error creating post:', error.message || error);
-    }
 
     return { data, error };
   },
 
-  // Update an existing post
   updatePost: async (postId: string, updates: Partial<Post>) => {
     if (!isConfigured) {
-      // Mock Mode
       const posts = getMockPosts();
       const updatedPosts = posts.map(p => 
-        p.id === postId ? { ...p, ...updates } : p
+        String(p.id) === String(postId) ? { ...p, ...updates } : p
       );
       saveMockPosts(updatedPosts);
       return { error: null };
@@ -158,53 +143,43 @@ export const db = {
       })
       .eq('id', postId);
 
-    if (error) console.error('Error updating post:', error.message);
     return { error };
   },
 
-  // Delete a post
   deletePost: async (postId: string) => {
-    console.log(`DB ACTION: Deleting post with ID ${postId}`);
-    
+    console.log(`DB Operation: Deleting post ID ${postId}`);
     if (!isConfigured) {
-      // Mock Mode
       const posts = getMockPosts();
       const initialCount = posts.length;
       const filteredPosts = posts.filter(p => String(p.id) !== String(postId));
       
       if (initialCount === filteredPosts.length) {
-        console.warn(`Deletion warning: No post found with ID ${postId}`);
+        console.warn(`Post with ID ${postId} not found in mock storage.`);
       }
-      
+
       saveMockPosts(filteredPosts);
+      console.log(`Mock deletion complete. Post count: ${filteredPosts.length}`);
       return { error: null };
     }
 
-    // 1. Delete likes first (Foreign Key constraint prevention)
+    // Try deleting likes first for referential integrity
     try {
       await supabase.from('likes').delete().eq('post_id', postId);
     } catch (e) {
-      console.warn("Related likes cleanup failed (may not exist).");
+      console.log('Cleanup likes failed or not needed');
     }
 
-    // 2. Delete the post
     const { error } = await supabase
       .from('posts')
       .delete()
       .eq('id', postId);
 
-    if (error) {
-      console.error('Database deletion error:', error.message);
-      return { error };
-    }
-
-    return { error: null };
+    if (error) console.error('Supabase deletion error:', error);
+    return { error };
   },
 
-  // Update post status
   updatePostStatus: async (id: string, status: PostStatus) => {
     if (!isConfigured) {
-      // Mock Mode
       const posts = getMockPosts();
       const updated = posts.map(p => String(p.id) === String(id) ? { ...p, status } : p);
       saveMockPosts(updated);
@@ -216,28 +191,24 @@ export const db = {
       .update({ status })
       .eq('id', id);
       
-    if (error) console.error('Error updating status:', error.message || error);
+    if (error) console.error('Error updating status:', error);
     return error;
   },
 
-  // Check if user liked a post
   checkUserLike: async (postId: string, userId: string): Promise<boolean> => {
     if (!isConfigured) {
       const key = `like_${userId}_${postId}`;
       return !!localStorage.getItem(key);
     }
-
     const { data, error } = await supabase
       .from('likes')
       .select('id')
       .eq('post_id', postId)
       .eq('user_id', userId)
       .single();
-    
     return !!data && !error;
   },
 
-  // Toggle Like (RPC)
   toggleLike: async (postId: string, userId: string) => {
     if (!isConfigured) {
       const key = `like_${userId}_${postId}`;
@@ -255,14 +226,10 @@ export const db = {
       saveMockPosts(updatedPosts);
       return null;
     }
-
-    const { error } = await supabase
-      .rpc('toggle_like', { post_id_input: postId, user_id_input: userId });
-      
+    const { error } = await supabase.rpc('toggle_like', { post_id_input: postId, user_id_input: userId });
     return error;
   },
 
-  // Increment View (RPC)
   incrementView: async (postId: string) => {
     if (!isConfigured) {
       const posts = getMockPosts();
@@ -270,10 +237,7 @@ export const db = {
       saveMockPosts(updated);
       return null;
     }
-
-    const { error } = await supabase
-      .rpc('increment_view', { post_id_input: postId });
-
+    const { error } = await supabase.rpc('increment_view', { post_id_input: postId });
     return error;
   }
 };
