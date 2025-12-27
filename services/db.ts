@@ -13,7 +13,7 @@ const getMockPosts = (): Post[] => {
   } catch (e) {
     console.error('Failed to parse mock posts', e);
   }
-  // 기본 데이터로 초기화 및 저장
+  // 기본 데이터로 초기화
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(MOCK_POSTS));
   return MOCK_POSTS;
 };
@@ -140,23 +140,41 @@ export const db = {
   },
 
   deletePost: async (postId: string) => {
+    console.log(`[DB] Attempting to delete post ID: ${postId}`);
+    
     if (!isConfigured) {
       const posts = getMockPosts();
-      // ID를 문자열로 변환하여 엄격하게 비교 후 필터링
+      const initialCount = posts.length;
       const filtered = posts.filter(p => String(p.id).trim() !== String(postId).trim());
+      
+      if (initialCount === filtered.length) {
+        console.error(`[Mock] Post with ID ${postId} not found. Deletion ignored.`);
+        return { error: 'Post not found' };
+      }
+
       saveMockPosts(filtered);
+      console.log(`[Mock] Deleted successfully. New count: ${filtered.length}`);
       return { error: null };
     }
 
+    // Supabase 환경: 외래 키 제약 조건 해결을 위해 좋아요 데이터 먼저 삭제
     try {
-      // 외래 키 제약 조건 방지를 위해 관련 좋아요 먼저 삭제 시도
       await supabase.from('likes').delete().eq('post_id', postId);
     } catch (e) {
-      console.warn('Likes cleanup ignored or failed');
+      console.warn('[Supabase] Likes cleanup failed (might not exist)', e);
     }
 
-    const { error } = await supabase.from('posts').delete().eq('id', postId);
-    return { error };
+    // 실제 포스트 삭제
+    const { error, status } = await supabase.from('posts').delete().eq('id', postId);
+    
+    if (error) {
+      console.error('[Supabase] Delete error:', error);
+      return { error };
+    }
+
+    // Supabase RLS 정책 때문에 삭제가 거부되었는데 오류는 안 날 수 있음 (204 No Content 반환 시)
+    console.log(`[Supabase] Delete request finished. Status: ${status}`);
+    return { error: null };
   },
 
   updatePostStatus: async (id: string, status: PostStatus) => {

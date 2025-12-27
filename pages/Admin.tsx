@@ -43,17 +43,18 @@ const Admin: React.FC = () => {
 
   const handleStatusChange = async (id: string, newStatus: PostStatus) => {
     const targetId = String(id).trim();
-    // Optimistic UI Update: 즉시 필터링
+    // Optimistic Update
+    const originalPosts = [...posts];
     setPosts(prev => prev.filter(p => String(p.id).trim() !== targetId));
     
     const err = await db.updatePostStatus(id, newStatus);
     if (err) {
-      // 실패 시 다시 로드하여 동기화
-      loadPosts();
+      // 복구
+      setPosts(originalPosts);
       setModal({
         isOpen: true,
         title: '변경 실패',
-        message: '상태를 업데이트하는 중 오류가 발생했습니다.',
+        message: '상태를 업데이트할 수 없습니다. DB 권한 또는 네트워크를 확인하세요.',
         type: 'error'
       });
     }
@@ -64,24 +65,30 @@ const Admin: React.FC = () => {
     setModal({
       isOpen: true,
       title: '영구 삭제하시겠습니까?',
-      message: '이 작업은 되돌릴 수 없으며 모든 데이터가 삭제됩니다.',
+      message: '이 작업은 되돌릴 수 없습니다. Supabase를 사용 중이라면 관리자 삭제 정책(RLS)이 설정되어 있어야 합니다.',
       type: 'confirm',
       showCancel: true,
-      confirmText: '삭제하기',
+      confirmText: '즉시 삭제',
       onConfirm: async () => {
-        // DB 삭제 시도
+        // Optimistic UI: 먼저 UI에서 제거
+        const originalPosts = [...posts];
+        setPosts(prev => prev.filter(p => String(p.id).trim() !== targetId));
+        
+        // 서버/저장소 삭제 요청
         const { error: dbError } = await db.deletePost(targetId);
         
         if (dbError) {
+          // 실패 시 UI 복구
+          setPosts(originalPosts);
           setModal({
             isOpen: true,
             title: '삭제 실패',
-            message: '서버 오류로 인해 삭제하지 못했습니다.',
+            message: `데이터베이스에서 삭제하지 못했습니다: ${typeof dbError === 'string' ? dbError : (dbError as any).message || '권한 부족'}`,
             type: 'error'
           });
         } else {
-          // 성공 시 UI 업데이트
-          setPosts(prev => prev.filter(p => String(p.id).trim() !== targetId));
+          // 성공 알림 (선택 사항)
+          console.log(`Post ${targetId} successfully removed.`);
         }
       }
     });
@@ -105,7 +112,7 @@ const Admin: React.FC = () => {
           <div className="w-20 h-20 bg-purple-500/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8 border border-purple-500/20">
             <KeyRound size={32} className="text-purple-400" />
           </div>
-          <h1 className="text-2xl font-black text-white mb-2">관리자 접속</h1>
+          <h1 className="text-2xl font-black text-white mb-2">관리자 모드</h1>
           <p className="text-gray-500 text-xs mb-8 font-bold uppercase tracking-widest">Admin Authorization</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
