@@ -49,7 +49,7 @@ const Admin: React.FC = () => {
     
     const err = await db.updatePostStatus(id, newStatus);
     if (err) {
-      // 복구
+      // 실패 시 UI 복구
       setPosts(originalPosts);
       setModal({
         isOpen: true,
@@ -65,7 +65,7 @@ const Admin: React.FC = () => {
     setModal({
       isOpen: true,
       title: '영구 삭제하시겠습니까?',
-      message: '이 작업은 되돌릴 수 없습니다. Supabase를 사용 중이라면 관리자 삭제 정책(RLS)이 설정되어 있어야 합니다.',
+      message: '이 작업은 되돌릴 수 없으며 모든 데이터가 삭제됩니다.',
       type: 'confirm',
       showCancel: true,
       confirmText: '즉시 삭제',
@@ -83,12 +83,9 @@ const Admin: React.FC = () => {
           setModal({
             isOpen: true,
             title: '삭제 실패',
-            message: `데이터베이스에서 삭제하지 못했습니다: ${typeof dbError === 'string' ? dbError : (dbError as any).message || '권한 부족'}`,
+            message: `데이터베이스에서 삭제하지 못했습니다.`,
             type: 'error'
           });
-        } else {
-          // 성공 알림 (선택 사항)
-          console.log(`Post ${targetId} successfully removed.`);
         }
       }
     });
@@ -189,10 +186,13 @@ const Admin: React.FC = () => {
                       <span className="text-[9px] font-black px-3 py-1 rounded-lg bg-white/5 text-gray-400 uppercase tracking-widest border border-white/5">{post.category}</span>
                       <span className="text-[9px] font-bold text-gray-600 tracking-wide">@{post.username}</span>
                     </div>
-                    <h3 className="font-black text-white text-lg leading-tight mb-2">{post.title}</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-2">{post.description}</p>
-                    <a href={post.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[9px] font-black text-blue-500 hover:text-blue-400 bg-blue-500/5 px-3 py-1.5 rounded-lg border border-blue-500/10">
-                      <ExternalLink size={10} /> <span className="truncate max-w-[200px]">{post.url}</span>
+                    {/* 제목 줄바꿈 허용 */}
+                    <h3 className="font-black text-white text-lg leading-tight mb-2 break-words">{post.title}</h3>
+                    {/* 설명 줄바꿈 허용 및 line-clamp 제거 */}
+                    <p className="text-gray-500 text-sm leading-relaxed mb-4 whitespace-pre-wrap break-words">{post.description}</p>
+                    {/* URL 전체 표시 및 줄바꿈 허용 */}
+                    <a href={post.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[9px] font-black text-blue-500 hover:text-blue-400 bg-blue-500/5 px-3 py-1.5 rounded-lg border border-blue-500/10 break-all">
+                      <ExternalLink size={10} className="flex-shrink-0" /> <span>{post.url}</span>
                     </a>
                   </div>
                 </div>
