@@ -17,13 +17,13 @@ export const PiService = {
         }
 
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        console.log(`Initializing Pi SDK (v2.0). Environment: ${isLocal ? 'Local (Sandbox)' : 'Production'}`);
+        console.log(`[Pi SDK] Initializing (v2.0). Environment: ${isLocal ? 'Sandbox' : 'Production'}`);
 
         await window.Pi.init({ version: '2.0', sandbox: isLocal });
-        console.log('Pi SDK Initialized.');
+        console.log('[Pi SDK] Initialized successfully.');
         return true;
       } catch (err: any) {
-        console.error('Pi SDK Init Error:', err);
+        console.error('[Pi SDK] Initialization Error:', err);
         initPromise = null;
         return false;
       }
@@ -32,17 +32,20 @@ export const PiService = {
     return initPromise;
   },
 
+  /**
+   * Authenticates the user with necessary scopes.
+   */
   authenticate: async (): Promise<PiAuthResult | null> => {
     try {
       const initialized = await PiService.init();
       if (!initialized) throw new Error("SDK initialization failed.");
 
-      // CRITICAL: Request 'payments' scope to enable createPayment calls
+      // Essential: 'payments' scope is required for any transaction.
       const scopes = ['username', 'payments']; 
       const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
       return authResult as PiAuthResult;
     } catch (err: any) {
-      console.error("Authentication Error:", err);
+      console.error("[Pi Auth] Error:", err);
       throw err; 
     }
   },
@@ -52,26 +55,29 @@ export const PiService = {
    */
   createPayment: async (postId: string, title: string): Promise<string> => {
     return new Promise((resolve, reject) => {
+      console.log(`[Pi Payment] Initiating 1 Pi payment for post: ${postId}`);
+      
       window.Pi.createPayment({
         amount: 1,
-        memo: `Submission Fee: ${title.substring(0, 20)}...`,
-        metadata: { postId: postId, type: 'post_submission' },
+        memo: `Curation Fee: ${title.substring(0, 30)}`,
+        metadata: { postId: postId, type: 'link_submission' },
       }, {
-        onReadyForServerApproval: async (paymentId: string) => {
-          console.log('[Pi Payment] Ready for Server Approval. Payment ID:', paymentId);
-          // Standard flow: resolve once payment is acknowledged
+        onReadyForServerApproval: (paymentId: string) => {
+          console.log('[Pi Payment] Ready for Server Approval:', paymentId);
+          // In this client-side demo, we resolve here to allow the UI to proceed.
+          // In production, you MUST call your backend to approve the payment via Pi API.
           resolve(paymentId);
         },
-        onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-          console.log('[Pi Payment] Transaction Completed. TXID:', txid);
+        onReadyForServerCompletion: (paymentId: string, txid: string) => {
+          console.log('[Pi Payment] Transaction Completed:', txid);
         },
         onCancel: (paymentId: string) => {
-          console.warn('[Pi Payment] Payment Cancelled by User:', paymentId);
-          reject(new Error('Payment cancelled by user.'));
+          console.warn('[Pi Payment] Cancelled by user:', paymentId);
+          reject(new Error('PAYMENT_CANCELLED'));
         },
         onError: (error: Error, payment?: any) => {
-          console.error('[Pi Payment] Error:', error, payment);
-          reject(error);
+          console.error('[Pi Payment] Critical Error:', error, payment);
+          reject(new Error(error.message || 'PAYMENT_FAILED'));
         }
       });
     });
@@ -79,5 +85,6 @@ export const PiService = {
 };
 
 function onIncompletePaymentFound(payment: any) {
-  console.log('Incomplete payment found:', payment);
+  console.log('[Pi SDK] Incomplete payment detected:', payment);
+  // Optional: Implement logic to resume or cancel incomplete payments.
 }
