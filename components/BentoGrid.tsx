@@ -21,17 +21,17 @@ const BentoGrid: React.FC<BentoGridProps> = ({ posts }) => {
         </span>
       </h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-auto md:h-[600px]">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 h-auto md:h-[450px]">
         {/* Main Hero Card - Takes up 2x2 space on desktop */}
         {primary && (
-          <div className="col-span-1 md:col-span-2 md:row-span-2 h-[300px] md:h-full">
+          <div className="col-span-1 md:col-span-2 md:row-span-2 h-[240px] md:h-full">
             <PostCard post={primary} variant="featured" className="h-full" />
           </div>
         )}
 
         {/* Smaller Cards */}
         {secondary.map((post, index) => (
-          <div key={post.id} className="col-span-1 md:col-span-1 md:row-span-1 h-[250px] md:h-full">
+          <div key={post.id} className="col-span-1 md:col-span-1 md:row-span-1 h-[200px] md:h-full">
             <PostCard post={post} variant="standard" className="h-full" />
           </div>
         ))}

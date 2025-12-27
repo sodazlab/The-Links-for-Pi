@@ -15,10 +15,10 @@ const MasonryGrid: React.FC<MasonryGridProps> = ({ posts }) => {
         Fresh Feeds
       </h2>
       
-      <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
+      <div className="columns-1 md:columns-2 lg:columns-3 gap-3 space-y-3">
         {posts.map((post) => (
           <div key={post.id} className="break-inside-avoid">
-            <PostCard post={post} className="mb-4 h-auto aspect-auto" variant="compact" />
+            <PostCard post={post} className="mb-3 h-auto aspect-auto" variant="compact" />
           </div>
         ))}
       </div>

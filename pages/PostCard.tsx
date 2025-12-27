@@ -119,12 +119,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
 
   const getIcon = () => {
     switch (post.category) {
-      case 'youtube': return <Play className="w-5 h-5 text-white" fill="currentColor" />;
-      case 'x': return <XLogo className="w-5 h-5 text-white" />;
-      case 'threads': return <AtSign className="w-5 h-5 text-white" />;
-      case 'instagram': return <Instagram className="w-5 h-5 text-white" />;
-      case 'article': return <FileText className="w-5 h-5 text-white" />;
-      default: return <LinkIcon className="w-5 h-5 text-white" />;
+      case 'youtube': return <Play className="w-4 h-4 text-white" fill="currentColor" />;
+      case 'x': return <XLogo className="w-4 h-4 text-white" />;
+      case 'threads': return <AtSign className="w-4 h-4 text-white" />;
+      case 'instagram': return <Instagram className="w-4 h-4 text-white" />;
+      case 'article': return <FileText className="w-4 h-4 text-white" />;
+      default: return <LinkIcon className="w-4 h-4 text-white" />;
     }
   };
 
@@ -145,54 +145,54 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         whileHover={{ scale: 1.02 }}
-        className={`relative group overflow-hidden rounded-[2.5rem] border border-white/10 shadow-lg ${className} bg-[#1a1a1a] flex flex-col`}
+        className={`relative group overflow-hidden rounded-3xl border border-white/10 shadow-lg ${className} bg-[#1a1a1a] flex flex-col`}
       >
-        <a href={post.url} target="_blank" rel="noreferrer" onClick={handleCardClick} className="flex-grow flex flex-col p-6 relative">
+        <a href={post.url} target="_blank" rel="noreferrer" onClick={handleCardClick} className="flex-grow flex flex-col p-5 relative">
           <div className={`absolute inset-0 bg-gradient-to-br ${getGradient()} opacity-60 transition-opacity group-hover:opacity-80`} />
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
 
           <div className="relative z-10 flex flex-col h-full">
-            <div className="flex justify-between items-start mb-6">
-              <div className="p-3 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-2.5 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
                 {getIcon()}
               </div>
 
               {isOwner && (
                 <div className="flex gap-2">
-                  <button onClick={handleEdit} className="p-2.5 rounded-xl bg-black/40 hover:bg-white/10 text-white/50 hover:text-white transition backdrop-blur-md border border-white/10">
-                    <Pencil size={14} />
+                  <button onClick={handleEdit} className="p-2 rounded-xl bg-black/40 hover:bg-white/10 text-white/50 hover:text-white transition backdrop-blur-md border border-white/10">
+                    <Pencil size={12} />
                   </button>
-                  <button onClick={handleDelete} className="p-2.5 rounded-xl bg-black/40 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition backdrop-blur-md border border-white/10">
-                    <Trash2 size={14} />
+                  <button onClick={handleDelete} className="p-2 rounded-xl bg-black/40 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition backdrop-blur-md border border-white/10">
+                    <Trash2 size={12} />
                   </button>
                 </div>
               )}
             </div>
 
             <div className="mt-auto">
-              <div className="flex items-center gap-2 mb-3">
-                 <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+              <div className="flex items-center gap-2 mb-2">
+                 <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
                    {post.category}
                  </span>
                  <span className="text-[9px] font-bold text-gray-500">@{post.username}</span>
               </div>
               
-              <h3 className={`font-black text-white leading-tight drop-shadow-2xl ${variant === 'featured' ? 'text-2xl md:text-3xl' : 'text-lg line-clamp-2'}`}>
+              <h3 className={`font-black text-white leading-tight drop-shadow-2xl ${variant === 'featured' ? 'text-xl md:text-2xl' : 'text-base line-clamp-2'}`}>
                 {post.title}
               </h3>
               
-              <p className="text-gray-400 font-medium text-xs mt-3 line-clamp-2 leading-relaxed opacity-60 group-hover:opacity-100 transition-opacity">
+              <p className="text-gray-400 font-medium text-[10px] mt-2 line-clamp-2 leading-relaxed opacity-60 group-hover:opacity-100 transition-opacity">
                 {post.description}
               </p>
               
-              <div className="flex items-center space-x-4 pt-5 mt-5 border-t border-white/5">
+              <div className="flex items-center space-x-4 pt-3 mt-3 border-t border-white/5">
                 <button onClick={toggleLike} className={`flex items-center space-x-1.5 text-xs transition-all ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-400'}`}>
-                  <Heart size={15} className={isLiked ? 'fill-current' : ''} />
+                  <Heart size={14} className={isLiked ? 'fill-current' : ''} />
                   <span className="font-black">{likes}</span>
                 </button>
                 <div className="flex items-center space-x-1.5 text-gray-400 text-xs font-black">
-                  <Eye size={15} />
+                  <Eye size={14} />
                   <span>{views}</span>
                 </div>
               </div>
