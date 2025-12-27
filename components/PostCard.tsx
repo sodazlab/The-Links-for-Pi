@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Play, Instagram, FileText, Link as LinkIcon, Heart, Eye, AtSign, Pencil, Trash2 } from 'lucide-react';
 import { Post } from '../types';
 import { db } from '../services/db';
@@ -26,7 +26,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
   const [likes, setLikes] = useState(post.likesCount);
   const [views, setViews] = useState(post.viewsCount);
   const [hasViewed, setHasViewed] = useState(false);
-  const [isRemoved, setIsRemoved] = useState(false);
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -101,19 +100,19 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
       message: '공유하신 링크가 커뮤니티 피드와 내 기록에서 완전히 제거됩니다.',
       type: 'confirm',
       showCancel: true,
-      confirmText: '삭제하기',
+      confirmText: '즉시 삭제',
       onConfirm: async () => {
         const { error } = await db.deletePost(post.id);
         if (error) {
           setModalConfig({
             isOpen: true,
             title: '작업 실패',
-            message: '게시물을 삭제하는 중 오류가 발생했습니다. 다시 시도해 주세요.',
+            message: '게시물을 삭제하는 중 오류가 발생했습니다. DB 권한을 확인하세요.',
             type: 'error'
           });
         } else {
-          // 삭제 성공 시에만 카드 제거
-          setIsRemoved(true);
+          // 삭제 성공 시 페이지 리프레시를 통해 피드 갱신
+          window.location.reload();
         }
       }
     });
@@ -140,15 +139,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     }
   };
 
-  if (isRemoved) return null;
-
   return (
     <>
       <motion.div 
         layout
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
         whileHover={{ scale: 1.02 }}
         className={`relative group overflow-hidden rounded-[2.5rem] border border-white/10 shadow-lg ${className} bg-[#1a1a1a] flex flex-col`}
       >

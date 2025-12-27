@@ -96,19 +96,23 @@ const Submit: React.FC = () => {
       } else {
         setModal({
           isOpen: true,
-          title: isEditMode ? 'Updated Successfully' : 'Submission Received',
+          title: isEditMode ? '수정 완료' : '제출 완료',
           message: isEditMode 
-            ? 'Your changes have been saved.' 
-            : 'Your link has been sent for review and will be live once approved.',
+            ? '게시물이 성공적으로 수정되었습니다.' 
+            : '성공적으로 제출되었습니다. 검토 후 리스트에 표시됩니다.',
           type: 'success',
-          onClose: () => navigate('/')
+          onClose: () => {
+            // 메인으로 이동하면서 새로고침 강제
+            window.location.href = '#/';
+            window.location.reload();
+          }
         });
       }
     } catch (err: any) {
       setModal({
         isOpen: true,
-        title: 'System Error',
-        message: err?.message || 'Failed to communicate with the database.',
+        title: '시스템 오류',
+        message: err?.message || 'DB 통신에 실패했습니다.',
         type: 'error'
       });
     } finally {
@@ -121,8 +125,8 @@ const Submit: React.FC = () => {
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center p-8 border border-white/10 rounded-[2rem] bg-white/5 backdrop-blur-md max-w-sm">
           <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white">Access Denied</h2>
-          <p className="text-gray-400 mt-2 mb-4">Pioneers must connect their wallet to share links with the community.</p>
+          <h2 className="text-2xl font-bold text-white">접근 제한</h2>
+          <p className="text-gray-400 mt-2 mb-4">커뮤니티와 링크를 공유하려면 먼저 Pi 지갑을 연결하세요.</p>
         </div>
       </div>
     );
@@ -131,28 +135,28 @@ const Submit: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8 animate-fade-in-up">
       <div className="bg-[#16161e] border border-white/10 rounded-[2.5rem] p-6 md:p-10 shadow-2xl">
-        <h1 className="text-3xl font-bold text-white mb-2">{isEditMode ? 'Edit Post' : 'Submit a Link'}</h1>
-        <p className="text-gray-400 mb-8">{isEditMode ? 'Update your content details.' : 'Share high-quality Pi Network content.'}</p>
+        <h1 className="text-3xl font-bold text-white mb-2">{isEditMode ? '수정하기' : '링크 공유하기'}</h1>
+        <p className="text-gray-500 text-xs font-black uppercase tracking-widest mb-8">{isEditMode ? 'Update Metadata' : 'New Submission'}</p>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-400 ml-1">Link URL</label>
+            <label className="text-sm font-semibold text-gray-400 ml-1">URL</label>
             <input type="url" required value={url} onChange={handleUrlChange} placeholder="https://..." className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" />
             <div className="flex items-center gap-2 mt-2 ml-1">
-              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Type:</span>
+              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">detected:</span>
               <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${detectedCategory !== 'other' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'bg-white/5 text-gray-500 border-white/10'}`}>{detectedCategory}</span>
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-400 ml-1">Headline</label>
-            <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Eye-catching title..." maxLength={60} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" />
+            <label className="text-sm font-semibold text-gray-400 ml-1">제목</label>
+            <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" maxLength={60} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-400 ml-1">Short Description</label>
-            <textarea required value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell the community why this is valuable..." rows={4} maxLength={200} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition resize-none shadow-inner" />
+            <label className="text-sm font-semibold text-gray-400 ml-1">설명</label>
+            <textarea required value={description} onChange={(e) => setDescription(e.target.value)} placeholder="링크에 대한 간단한 설명을 입력하세요" rows={4} maxLength={200} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition resize-none shadow-inner" />
           </div>
-          <button type="submit" disabled={isSubmitting} className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition shadow-xl ${isSubmitting ? 'bg-gray-800 cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 shadow-purple-900/20'}`}>
-            {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Processing...</> : <>{isEditMode ? <Save className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}{isEditMode ? 'Update Changes' : 'Publish Link'}</>}
+          <button type="submit" disabled={isSubmitting} className={`w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition shadow-xl ${isSubmitting ? 'bg-gray-800 cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 shadow-purple-900/20'}`}>
+            {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Processing...</> : <>{isEditMode ? <Save className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}{isEditMode ? '수정 사항 저장' : '발행하기'}</>}
           </button>
         </form>
       </div>
