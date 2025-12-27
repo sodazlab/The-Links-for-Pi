@@ -57,10 +57,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     if (!user) {
       setModalConfig({
         isOpen: true,
-        title: '커뮤니티 참여',
-        message: 'Pi 지갑을 연결하여 포스트에 좋아요를 누르고 소통해 보세요.',
+        title: 'Community Interaction',
+        message: 'Please connect your Pi wallet to like posts and engage with the community.',
         type: 'warning',
-        confirmText: '확인'
+        confirmText: 'OK'
       });
       return;
     }
@@ -96,22 +96,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     
     setModalConfig({
       isOpen: true,
-      title: '정말 삭제하시겠습니까?',
-      message: '공유하신 링크가 커뮤니티 피드와 내 기록에서 완전히 제거됩니다.',
+      title: 'Are you sure?',
+      message: 'This link will be permanently removed from the community feed.',
       type: 'confirm',
       showCancel: true,
-      confirmText: '즉시 삭제',
+      confirmText: 'Delete Now',
       onConfirm: async () => {
         const { error } = await db.deletePost(post.id);
         if (error) {
           setModalConfig({
             isOpen: true,
-            title: '작업 실패',
-            message: '게시물을 삭제하는 중 오류가 발생했습니다. DB 권한을 확인하세요.',
+            title: 'Action Failed',
+            message: 'An error occurred while deleting the post. Please check permissions.',
             type: 'error'
           });
         } else {
-          // 삭제 성공 시 페이지 리프레시를 통해 피드 갱신
           window.location.reload();
         }
       }

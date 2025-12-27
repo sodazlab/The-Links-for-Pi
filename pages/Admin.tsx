@@ -43,18 +43,16 @@ const Admin: React.FC = () => {
 
   const handleStatusChange = async (id: string, newStatus: PostStatus) => {
     const targetId = String(id).trim();
-    // Optimistic Update
     const originalPosts = [...posts];
     setPosts(prev => prev.filter(p => String(p.id).trim() !== targetId));
     
     const err = await db.updatePostStatus(id, newStatus);
     if (err) {
-      // 실패 시 UI 복구
       setPosts(originalPosts);
       setModal({
         isOpen: true,
-        title: '변경 실패',
-        message: '상태를 업데이트할 수 없습니다. DB 권한 또는 네트워크를 확인하세요.',
+        title: 'Action Failed',
+        message: 'Could not update status. Please check your DB permissions or network.',
         type: 'error'
       });
     }
@@ -64,26 +62,23 @@ const Admin: React.FC = () => {
     const targetId = String(id).trim();
     setModal({
       isOpen: true,
-      title: '영구 삭제하시겠습니까?',
-      message: '이 작업은 되돌릴 수 없으며 모든 데이터가 삭제됩니다.',
+      title: 'Delete Permanently?',
+      message: 'This action cannot be undone and all data will be lost.',
       type: 'confirm',
       showCancel: true,
-      confirmText: '즉시 삭제',
+      confirmText: 'Delete Now',
       onConfirm: async () => {
-        // Optimistic UI: 먼저 UI에서 제거
         const originalPosts = [...posts];
         setPosts(prev => prev.filter(p => String(p.id).trim() !== targetId));
         
-        // 서버/저장소 삭제 요청
         const { error: dbError } = await db.deletePost(targetId);
         
         if (dbError) {
-          // 실패 시 UI 복구
           setPosts(originalPosts);
           setModal({
             isOpen: true,
-            title: '삭제 실패',
-            message: `데이터베이스에서 삭제하지 못했습니다.`,
+            title: 'Delete Failed',
+            message: `Could not remove data from the database.`,
             type: 'error'
           });
         }
@@ -97,7 +92,7 @@ const Admin: React.FC = () => {
       loginAsAdmin();
       setError('');
     } else {
-      setError('올바른 PIN 번호를 입력하세요.');
+      setError('Please enter the correct PIN.');
       setPassword('');
     }
   };
@@ -105,12 +100,12 @@ const Admin: React.FC = () => {
   if (!user || user.role !== 'admin') {
     return (
       <div className="flex items-center justify-center min-h-[80vh] px-4 animate-fade-in-up">
-        <div className="w-full max-w-sm bg-[#16161e] border border-white/10 rounded-[3rem] p-10 shadow-2xl text-center backdrop-blur-xl">
+        <div className="w-full max-sm bg-[#16161e] border border-white/10 rounded-[3rem] p-10 shadow-2xl text-center backdrop-blur-xl">
           <div className="w-20 h-20 bg-purple-500/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8 border border-purple-500/20">
             <KeyRound size={32} className="text-purple-400" />
           </div>
-          <h1 className="text-2xl font-black text-white mb-2">관리자 모드</h1>
-          <p className="text-gray-500 text-xs mb-8 font-bold uppercase tracking-widest">Admin Authorization</p>
+          <h1 className="text-2xl font-black text-white mb-2">Admin Mode</h1>
+          <p className="text-gray-500 text-xs mb-8 font-bold uppercase tracking-widest">Authorization Required</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <input 
@@ -186,11 +181,8 @@ const Admin: React.FC = () => {
                       <span className="text-[9px] font-black px-3 py-1 rounded-lg bg-white/5 text-gray-400 uppercase tracking-widest border border-white/5">{post.category}</span>
                       <span className="text-[9px] font-bold text-gray-600 tracking-wide">@{post.username}</span>
                     </div>
-                    {/* 제목 줄바꿈 허용 */}
                     <h3 className="font-black text-white text-lg leading-tight mb-2 break-words">{post.title}</h3>
-                    {/* 설명 줄바꿈 허용 및 line-clamp 제거 */}
                     <p className="text-gray-500 text-sm leading-relaxed mb-4 whitespace-pre-wrap break-words">{post.description}</p>
-                    {/* URL 전체 표시 및 줄바꿈 허용 */}
                     <a href={post.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[9px] font-black text-blue-500 hover:text-blue-400 bg-blue-500/5 px-3 py-1.5 rounded-lg border border-blue-500/10 break-all">
                       <ExternalLink size={10} className="flex-shrink-0" /> <span>{post.url}</span>
                     </a>

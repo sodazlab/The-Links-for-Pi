@@ -37,7 +37,7 @@ export const PiService = {
       const initialized = await PiService.init();
       if (!initialized) throw new Error("SDK initialization failed.");
 
-      // 'payments' 스코프가 있어야 결제 API를 호출할 수 있습니다.
+      // Essential: 'payments' scope is required to call createPayment.
       const scopes = ['username', 'payments']; 
       const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
       return authResult as PiAuthResult;
@@ -49,7 +49,6 @@ export const PiService = {
 
   /**
    * Creates a payment of 1 Pi for post submission.
-   * Note: Real apps require a backend to approve and complete payments.
    */
   createPayment: async (postId: string, title: string): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -60,14 +59,11 @@ export const PiService = {
       }, {
         onReadyForServerApproval: async (paymentId: string) => {
           console.log('[Pi Payment] Ready for Server Approval. Payment ID:', paymentId);
-          // 실제 서비스에서는 여기서 paymentId를 백엔드로 보내 서버측 승인(Approve)을 받아야 합니다.
-          // 여기서는 데모를 위해 승인 프로세스가 진행된다고 가정합니다.
-          // 예: await fetch('/api/pi/approve', { method: 'POST', body: JSON.stringify({ paymentId }) });
+          // In production, send paymentId to your backend here.
           resolve(paymentId);
         },
         onReadyForServerCompletion: async (paymentId: string, txid: string) => {
           console.log('[Pi Payment] Transaction Completed. TXID:', txid);
-          // 실제 서비스에서는 여기서 txid를 백엔드로 보내 서버측 완료(Complete) 처리를 해야 합니다.
         },
         onCancel: (paymentId: string) => {
           console.warn('[Pi Payment] Payment Cancelled by User:', paymentId);
@@ -84,5 +80,4 @@ export const PiService = {
 
 function onIncompletePaymentFound(payment: any) {
   console.log('Incomplete payment found:', payment);
-  // 결제 완료 처리가 중단된 건이 있다면 여기서 처리 로직을 구현할 수 있습니다.
 }

@@ -64,19 +64,18 @@ const Submit: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // 1. 신규 등록일 경우 결제 먼저 진행
+      // 1. Payment process for new submissions
       if (!isEditMode) {
         setPaymentStatus('pending_payment');
         try {
-          // 임시 ID 생성 (결제 메타데이터용)
           const tempId = `temp_${Date.now()}`;
           await PiService.createPayment(tempId, title);
           console.log('Payment Successful');
         } catch (payErr: any) {
           setModal({
             isOpen: true,
-            title: '결제 실패 또는 취소',
-            message: payErr.message || '1 Pi 결제가 완료되지 않았습니다. 게시물을 등록하려면 결제가 필요합니다.',
+            title: 'Payment Failed',
+            message: payErr.message || '1 Pi payment was not completed. Payment is required to publish new links.',
             type: 'warning'
           });
           setIsSubmitting(false);
@@ -106,14 +105,14 @@ const Submit: React.FC = () => {
       }
 
       if (result.error) {
-        throw new Error(typeof result.error === 'string' ? result.error : '저장에 실패했습니다.');
+        throw new Error(typeof result.error === 'string' ? result.error : 'Failed to save to database.');
       } else {
         setModal({
           isOpen: true,
-          title: isEditMode ? '수정 완료' : '발행 완료',
+          title: isEditMode ? 'Update Successful' : 'Publish Successful',
           message: isEditMode 
-            ? '게시물이 성공적으로 수정되었습니다.' 
-            : '1 Pi 결제 및 제출이 완료되었습니다. 관리자 검토 후 리스트에 표시됩니다.',
+            ? 'The post has been successfully updated.' 
+            : 'Payment and submission completed. It will appear on the feed after moderation.',
           type: 'success',
           onClose: () => {
             window.location.href = '#/';
@@ -124,8 +123,8 @@ const Submit: React.FC = () => {
     } catch (err: any) {
       setModal({
         isOpen: true,
-        title: '오류 발생',
-        message: err?.message || '처리 중 문제가 발생했습니다.',
+        title: 'An Error Occurred',
+        message: err?.message || 'Something went wrong during processing.',
         type: 'error'
       });
     } finally {
@@ -139,8 +138,8 @@ const Submit: React.FC = () => {
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center p-8 border border-white/10 rounded-[2rem] bg-white/5 backdrop-blur-md max-w-sm">
           <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white">접근 제한</h2>
-          <p className="text-gray-400 mt-2 mb-4">커뮤니티와 링크를 공유하려면 먼저 Pi 지갑을 연결하세요.</p>
+          <h2 className="text-2xl font-bold text-white">Access Denied</h2>
+          <p className="text-gray-400 mt-2 mb-4">Please connect your Pi wallet first to share links with the community.</p>
         </div>
       </div>
     );
@@ -161,19 +160,19 @@ const Submit: React.FC = () => {
               )}
             </div>
             <h3 className="text-xl font-black text-white mb-2">
-              {paymentStatus === 'pending_payment' ? 'Pi 지갑 결제 대기 중...' : '데이터 저장 중...'}
+              {paymentStatus === 'pending_payment' ? 'Waiting for Wallet Payment...' : 'Saving Data...'}
             </h3>
             <p className="text-gray-500 text-sm font-medium">
               {paymentStatus === 'pending_payment' 
-                ? 'Pi 앱에서 결제 승인을 완료해 주세요. (1 Pi)' 
-                : '거의 다 되었습니다. 잠시만 기다려 주세요.'}
+                ? 'Please approve the transaction in your Pi app (1 Pi).' 
+                : 'Almost there. Please wait a moment.'}
             </p>
           </div>
         )}
 
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h1 className="text-3xl font-bold text-white">{isEditMode ? '수정하기' : '링크 공유하기'}</h1>
+            <h1 className="text-3xl font-bold text-white">{isEditMode ? 'Edit Link' : 'Share a Link'}</h1>
             <p className="text-gray-500 text-xs font-black uppercase tracking-widest">{isEditMode ? 'Update Metadata' : 'New Submission'}</p>
           </div>
           {!isEditMode && (
@@ -194,18 +193,18 @@ const Submit: React.FC = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-400 ml-1">제목</label>
-            <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" maxLength={60} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" />
+            <label className="text-sm font-semibold text-gray-400 ml-1">Title</label>
+            <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter link title" maxLength={60} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-400 ml-1">설명</label>
-            <textarea required value={description} onChange={(e) => setDescription(e.target.value)} placeholder="링크에 대한 간단한 설명을 입력하세요" rows={4} maxLength={200} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition resize-none shadow-inner" />
+            <label className="text-sm font-semibold text-gray-400 ml-1">Description</label>
+            <textarea required value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide a brief description about the link" rows={4} maxLength={200} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition resize-none shadow-inner" />
           </div>
           
           {!isEditMode && (
             <div className="p-4 bg-yellow-500/5 border border-yellow-500/10 rounded-2xl">
               <p className="text-[10px] text-yellow-500/70 leading-relaxed font-medium">
-                * 신규 링크 공유 시 커뮤니티 유지비용으로 1 Pi가 차감됩니다. 결제 완료 후 검토 프로세스가 시작됩니다.
+                * A 1 Pi platform fee is required for new submissions to support the community.
               </p>
             </div>
           )}
@@ -216,7 +215,7 @@ const Submit: React.FC = () => {
             ) : (
               <>
                 {isEditMode ? <Save className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
-                {isEditMode ? '수정 사항 저장' : '1 Pi 결제 후 발행'}
+                {isEditMode ? 'Save Changes' : 'Pay 1 Pi & Publish'}
               </>
             )}
           </button>
