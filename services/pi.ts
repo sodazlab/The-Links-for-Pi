@@ -37,7 +37,7 @@ export const PiService = {
       const initialized = await PiService.init();
       if (!initialized) throw new Error("SDK initialization failed.");
 
-      // Essential: 'payments' scope is required to call createPayment.
+      // CRITICAL: Request 'payments' scope to enable createPayment calls
       const scopes = ['username', 'payments']; 
       const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
       return authResult as PiAuthResult;
@@ -59,7 +59,7 @@ export const PiService = {
       }, {
         onReadyForServerApproval: async (paymentId: string) => {
           console.log('[Pi Payment] Ready for Server Approval. Payment ID:', paymentId);
-          // In production, send paymentId to your backend here.
+          // Standard flow: resolve once payment is acknowledged
           resolve(paymentId);
         },
         onReadyForServerCompletion: async (paymentId: string, txid: string) => {

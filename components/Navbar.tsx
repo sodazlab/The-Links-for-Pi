@@ -10,10 +10,8 @@ const Navbar: React.FC = () => {
 
   const handleNavHome = (e: React.MouseEvent) => {
     if (location.pathname === '/') {
-      // 이미 홈이면 새로고침 수행
       window.location.reload();
     } else {
-      // 홈이 아니면 홈으로 이동
       navigate('/');
     }
   };
@@ -44,7 +42,7 @@ const Navbar: React.FC = () => {
           </button>
           {user?.role === 'admin' && (
             <Link to="/admin" className={`text-sm font-black uppercase tracking-widest hover:text-white transition ${location.pathname === '/admin' ? 'text-white border-b-2 border-purple-500 pb-1' : 'text-gray-500'}`}>
-              Admin
+              Moderation
             </Link>
           )}
         </div>
@@ -61,7 +59,7 @@ const Navbar: React.FC = () => {
                <button 
                 onClick={handleAdminLogin}
                 className="p-2 text-gray-500 hover:text-white transition"
-                title="Admin Login"
+                title="Admin Access"
                >
                  <Shield size={16} />
                </button>
@@ -71,6 +69,7 @@ const Navbar: React.FC = () => {
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
                 <img src={user.avatarUrl} alt="User" className="w-6 h-6 rounded-full" />
                 <span className="text-xs font-medium text-gray-300 truncate max-w-[100px]">{user.username}</span>
+                {user.role === 'admin' && <Shield size={12} className="text-purple-400" />}
               </div>
               
               <Link to="/submit" title="Submit Link" className="hover:scale-110 transition-transform">

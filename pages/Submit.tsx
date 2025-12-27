@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../services/authContext';
 import { db } from '../services/db';
 import { PiService } from '../services/pi';
-import { CheckCircle, AlertCircle, Loader2, Save, Wallet } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Save, Wallet, ShieldCheck } from 'lucide-react';
 import { PostCategory, Post } from '../types';
 import Modal from '../components/Modal';
 
@@ -14,6 +14,7 @@ const Submit: React.FC = () => {
   
   const editModePost = location.state?.post as Post | undefined;
   const isEditMode = !!editModePost;
+  const isAdmin = user?.role === 'admin';
 
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -64,8 +65,8 @@ const Submit: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // 1. Payment process for new submissions
-      if (!isEditMode) {
+      // 1. Payment process for new submissions (Only for non-admins)
+      if (!isEditMode && !isAdmin) {
         setPaymentStatus('pending_payment');
         try {
           const tempId = `temp_${Date.now()}`;
@@ -74,16 +75,19 @@ const Submit: React.FC = () => {
         } catch (payErr: any) {
           setModal({
             isOpen: true,
-            title: 'Payment Failed',
-            message: payErr.message || '1 Pi payment was not completed. Payment is required to publish new links.',
+            title: 'Payment Incomplete',
+            message: payErr.message || 'The 1 Pi payment was not completed. Standard users must pay a fee to publish new links.',
             type: 'warning'
           });
           setIsSubmitting(false);
           setPaymentStatus('idle');
           return;
         }
+      } else if (!isEditMode && isAdmin) {
+        console.log('Admin detected. Bypassing payment step.');
       }
 
+      // 2. Database Save
       setPaymentStatus('saving');
       let result;
       if (isEditMode && editModePost) {
@@ -111,11 +115,11 @@ const Submit: React.FC = () => {
           isOpen: true,
           title: isEditMode ? 'Update Successful' : 'Publish Successful',
           message: isEditMode 
-            ? 'The post has been successfully updated.' 
-            : 'Payment and submission completed. It will appear on the feed after moderation.',
+            ? 'The link metadata has been successfully updated.' 
+            : `Submission completed ${isAdmin ? '(Admin override)' : 'with 1 Pi payment'}. It will be visible on the feed after moderation.`,
           type: 'success',
           onClose: () => {
-            window.location.href = '#/';
+            navigate('/');
             window.location.reload();
           }
         });
@@ -123,8 +127,8 @@ const Submit: React.FC = () => {
     } catch (err: any) {
       setModal({
         isOpen: true,
-        title: 'An Error Occurred',
-        message: err?.message || 'Something went wrong during processing.',
+        title: 'Error Occurred',
+        message: err?.message || 'Something went wrong while processing your request.',
         type: 'error'
       });
     } finally {
@@ -148,6 +152,7 @@ const Submit: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8 animate-fade-in-up">
       <div className="bg-[#16161e] border border-white/10 rounded-[2.5rem] p-6 md:p-10 shadow-2xl relative overflow-hidden">
+        
         {/* Progress Overlay */}
         {isSubmitting && (
           <div className="absolute inset-0 z-50 bg-[#0f0f12]/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6">
@@ -159,63 +164,96 @@ const Submit: React.FC = () => {
                 <Loader2 className="absolute inset-0 m-auto text-purple-400 w-8 h-8 animate-spin" />
               )}
             </div>
-            <h3 className="text-xl font-black text-white mb-2">
-              {paymentStatus === 'pending_payment' ? 'Waiting for Wallet Payment...' : 'Saving Data...'}
+            <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tighter">
+              {paymentStatus === 'pending_payment' ? 'Approving Payment...' : 'Syncing Data...'}
             </h3>
             <p className="text-gray-500 text-sm font-medium">
               {paymentStatus === 'pending_payment' 
-                ? 'Please approve the transaction in your Pi app (1 Pi).' 
-                : 'Almost there. Please wait a moment.'}
+                ? 'Check your Pi Wallet to confirm the 1 Pi transaction.' 
+                : 'Finalizing your submission. One moment please.'}
             </p>
           </div>
         )}
 
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h1 className="text-3xl font-bold text-white">{isEditMode ? 'Edit Link' : 'Share a Link'}</h1>
-            <p className="text-gray-500 text-xs font-black uppercase tracking-widest">{isEditMode ? 'Update Metadata' : 'New Submission'}</p>
+            <h1 className="text-3xl font-bold text-white">{isEditMode ? 'Edit Content' : 'Publish Link'}</h1>
+            <p className="text-gray-500 text-xs font-black uppercase tracking-widest">{isEditMode ? 'Update Shared Info' : 'Curation Submission'}</p>
           </div>
           {!isEditMode && (
-            <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl px-4 py-2 flex items-center gap-2">
-              <Wallet className="text-purple-400 w-4 h-4" />
-              <span className="text-purple-400 font-black text-xs">1 Pi</span>
+            <div className={`border rounded-2xl px-4 py-2 flex items-center gap-2 ${isAdmin ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-purple-500/10 border-purple-500/20'}`}>
+              {isAdmin ? <ShieldCheck className="text-emerald-400 w-4 h-4" /> : <Wallet className="text-purple-400 w-4 h-4" />}
+              <span className={`font-black text-xs ${isAdmin ? 'text-emerald-400' : 'text-purple-400'}`}>
+                {isAdmin ? 'Admin: Free' : '1 Pi Fee'}
+              </span>
             </div>
           )}
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6 mt-8">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-400 ml-1">URL</label>
-            <input type="url" required value={url} onChange={handleUrlChange} placeholder="https://..." className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" />
+            <label className="text-sm font-semibold text-gray-400 ml-1">Destination URL</label>
+            <input 
+              type="url" 
+              required 
+              value={url} 
+              onChange={handleUrlChange} 
+              placeholder="https://..." 
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" 
+            />
             <div className="flex items-center gap-2 mt-2 ml-1">
-              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">detected:</span>
-              <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${detectedCategory !== 'other' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'bg-white/5 text-gray-500 border-white/10'}`}>{detectedCategory}</span>
+              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Detected:</span>
+              <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${detectedCategory !== 'other' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'bg-white/5 text-gray-500 border-white/10'}`}>
+                {detectedCategory}
+              </span>
             </div>
           </div>
+
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-400 ml-1">Title</label>
-            <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter link title" maxLength={60} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" />
+            <label className="text-sm font-semibold text-gray-400 ml-1">Display Title</label>
+            <input 
+              type="text" 
+              required 
+              value={title} 
+              onChange={(e) => setTitle(e.target.value)} 
+              placeholder="e.g. Pi Network Node Update" 
+              maxLength={60} 
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" 
+            />
           </div>
+
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-400 ml-1">Description</label>
-            <textarea required value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide a brief description about the link" rows={4} maxLength={200} className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition resize-none shadow-inner" />
+            <textarea 
+              required 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="What makes this link valuable to Pioneers?" 
+              rows={4} 
+              maxLength={200} 
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition resize-none shadow-inner" 
+            />
           </div>
           
-          {!isEditMode && (
+          {!isEditMode && !isAdmin && (
             <div className="p-4 bg-yellow-500/5 border border-yellow-500/10 rounded-2xl">
-              <p className="text-[10px] text-yellow-500/70 leading-relaxed font-medium">
-                * A 1 Pi platform fee is required for new submissions to support the community.
+              <p className="text-[10px] text-yellow-500/70 leading-relaxed font-medium uppercase tracking-tight">
+                * Standard submissions require a 1 Pi fee. This helps prevent spam and maintains community quality.
               </p>
             </div>
           )}
 
-          <button type="submit" disabled={isSubmitting} className={`w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition shadow-xl ${isSubmitting ? 'bg-gray-800 cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 shadow-purple-900/20'}`}>
+          <button 
+            type="submit" 
+            disabled={isSubmitting} 
+            className={`w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition shadow-xl ${isSubmitting ? 'bg-gray-800 cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 shadow-purple-900/20'}`}
+          >
             {isSubmitting ? (
-              <><Loader2 className="w-5 h-5 animate-spin" />Processing...</>
+              <><Loader2 className="w-5 h-5 animate-spin" /> Processing</>
             ) : (
               <>
-                {isEditMode ? <Save className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
-                {isEditMode ? 'Save Changes' : 'Pay 1 Pi & Publish'}
+                {isEditMode ? <Save className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                {isEditMode ? 'Update Post' : isAdmin ? 'Publish Now (Admin)' : 'Pay 1 Pi & Publish'}
               </>
             )}
           </button>
