@@ -6,7 +6,6 @@ let initPromise: Promise<boolean> | null = null;
 export const PiService = {
   /**
    * Initializes the Pi SDK.
-   * strictly follows: https://github.com/pi-apps/pi-platform-docs/blob/master/SDK_reference.md
    */
   init: (): Promise<boolean> => {
     if (initPromise) return initPromise;
@@ -17,22 +16,14 @@ export const PiService = {
           throw new Error("Pi SDK script is not loaded. Ensure <script src='https://sdk.minepi.com/pi-sdk.js'> is in index.html");
         }
 
-        // AUTO-DETECT ENVIRONMENT
-        // The error "Failed to execute 'postMessage' ... target origin provided ('https://sandbox.minepi.com') does not match..."
-        // occurs when running 'sandbox: true' on a public domain (like Vercel) without being inside the Pi Sandbox Shell.
-        // Fix: Use sandbox: true ONLY for localhost. For Vercel/Production, use sandbox: false.
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
         console.log(`Initializing Pi SDK (v2.0). Environment: ${isLocal ? 'Local (Sandbox)' : 'Production'}`);
 
-        // sandbox: true for localhost, false for production to avoid origin mismatch errors
         await window.Pi.init({ version: '2.0', sandbox: isLocal });
-        
         console.log('Pi SDK Initialized.');
         return true;
       } catch (err: any) {
         console.error('Pi SDK Init Error:', err);
-        // Do not alert on init error to avoid annoying popups on load, just log it.
         initPromise = null;
         return false;
       }
@@ -43,42 +34,54 @@ export const PiService = {
 
   authenticate: async (): Promise<PiAuthResult | null> => {
     try {
-      // 1. Ensure Init
       const initialized = await PiService.init();
-      if (!initialized) {
-        throw new Error("SDK initialization failed. Check internet connection or ad blockers.");
-      }
+      if (!initialized) throw new Error("SDK initialization failed.");
 
-      if (!window.Pi) {
-        throw new Error("window.Pi is undefined despite initialization.");
-      }
-
-      // 2. Debugging Helper
-      console.log("Current Window URL:", window.location.href);
-
-      // 3. Authenticate
-      // Requesting 'payments' often fails if the app is not fully configured in the portal.
-      // We start with 'username' only for highest success rate.
       const scopes = ['username']; 
-      
-      console.log("Calling window.Pi.authenticate with scopes:", scopes);
-
-      // Standard call according to docs
       const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-      
-      console.log('Authentication successful:', authResult);
       return authResult as PiAuthResult;
-
     } catch (err: any) {
-      console.error("Authentication Error Details:", err);
+      console.error("Authentication Error:", err);
       throw err; 
     }
+  },
+
+  /**
+   * Creates a payment of 1 Pi for post submission.
+   * Note: Real apps require a backend to approve and complete payments.
+   */
+  createPayment: async (postId: string, title: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      window.Pi.createPayment({
+        amount: 1,
+        memo: `Submission Fee: ${title.substring(0, 20)}...`,
+        metadata: { postId: postId, type: 'post_submission' },
+      }, {
+        onReadyForServerApproval: async (paymentId: string) => {
+          console.log('[Pi Payment] Ready for Server Approval. Payment ID:', paymentId);
+          // 실제 서비스에서는 여기서 paymentId를 백엔드로 보내 서버측 승인(Approve)을 받아야 합니다.
+          // 여기서는 데모를 위해 승인 프로세스가 진행된다고 가정합니다.
+          // 예: await fetch('/api/pi/approve', { method: 'POST', body: JSON.stringify({ paymentId }) });
+          resolve(paymentId);
+        },
+        onReadyForServerCompletion: async (paymentId: string, txid: string) => {
+          console.log('[Pi Payment] Transaction Completed. TXID:', txid);
+          // 실제 서비스에서는 여기서 txid를 백엔드로 보내 서버측 완료(Complete) 처리를 해야 합니다.
+        },
+        onCancel: (paymentId: string) => {
+          console.warn('[Pi Payment] Payment Cancelled by User:', paymentId);
+          reject(new Error('Payment cancelled by user.'));
+        },
+        onError: (error: Error, payment?: any) => {
+          console.error('[Pi Payment] Error:', error, payment);
+          reject(error);
+        }
+      });
+    });
   }
 };
 
-/**
- * Handler for incomplete payments.
- */
 function onIncompletePaymentFound(payment: any) {
   console.log('Incomplete payment found:', payment);
+  // 결제 완료 처리가 중단된 건이 있다면 여기서 처리 로직을 구현할 수 있습니다.
 }
