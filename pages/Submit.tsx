@@ -23,7 +23,6 @@ const Submit: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending_payment' | 'saving'>('idle');
 
-  // Unified modal state to prevent state collision
   const [modal, setModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -59,48 +58,47 @@ const Submit: React.FC = () => {
     else setDetectedCategory('other');
   };
 
-  const closeAndReset = () => {
-    setModal(prev => ({ ...prev, isOpen: false }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || isSubmitting) return;
     
     setIsSubmitting(true);
-    let proceedToSave = false;
+    let paymentVerified = false;
     
     try {
-      // PHASE 1: PAYMENT (Mandatory for non-admins on new posts)
+      // 1. PAYMENT GATE (Skip for edits and admins)
       if (!isEditMode && !isAdmin) {
         setPaymentStatus('pending_payment');
         try {
+          // This promise now only resolves if PiService triggers onReadyForServerCompletion
           const tempId = `temp_${Date.now()}`;
           await PiService.createPayment(tempId, title);
-          proceedToSave = true; // Payment handshake succeeded
+          paymentVerified = true; 
         } catch (payErr: any) {
+          console.error('[Submit] Payment Interrupted:', payErr);
           const isCancel = payErr.message === 'PAYMENT_CANCELLED';
-          setIsSubmitting(false);
-          setPaymentStatus('idle');
           
           setModal({
             isOpen: true,
             title: isCancel ? 'Payment Cancelled' : 'Payment Failed',
             message: isCancel 
-              ? 'You cancelled the 1 Pi payment. Submission cannot proceed without payment.' 
-              : 'The Pi Wallet encountered an error. Please ensure you are using the Pi Browser.',
-            type: isCancel ? 'info' : 'warning',
-            onClose: closeAndReset
+              ? 'Submission aborted. You must complete the 1 Pi payment to publish new links to the community.' 
+              : 'The Pi Wallet could not process the payment. If it was stuck on "Preparing", check your backend configuration.',
+            type: isCancel ? 'info' : 'warning'
           });
-          return; // STOP EXECUTION: DO NOT SAVE TO DB
+
+          // STOP THE WHOLE PROCESS HERE
+          setIsSubmitting(false);
+          setPaymentStatus('idle');
+          return; 
         }
       } else {
-        // Admins or Edit mode always proceed
-        proceedToSave = true;
+        // Admin or Edit Mode doesn't require new payment
+        paymentVerified = true;
       }
 
-      // PHASE 2: DATABASE SAVING
-      if (proceedToSave) {
+      // 2. DATABASE SAVE (ONLY reached if paymentVerified is TRUE)
+      if (paymentVerified) {
         setPaymentStatus('saving');
         let result;
         if (isEditMode && editModePost) {
@@ -122,14 +120,14 @@ const Submit: React.FC = () => {
         }
 
         if (result.error) {
-          throw new Error('Database Error: Could not save your entry.');
+          throw new Error('Database write failed. Please check your connection.');
         } else {
           setModal({
             isOpen: true,
-            title: 'Submission Successful',
+            title: 'Success!',
             message: isEditMode 
-              ? 'Changes saved successfully.' 
-              : 'Your link has been submitted and is awaiting moderation.',
+              ? 'Your link has been updated.' 
+              : 'Your link has been published and is now waiting for moderation.',
             type: 'success',
             onClose: () => {
               navigate('/');
@@ -139,13 +137,12 @@ const Submit: React.FC = () => {
         }
       }
     } catch (err: any) {
-      console.error('[Submit] Critical Failure:', err);
+      console.error('[Submit] Critical error:', err);
       setModal({
         isOpen: true,
         title: 'System Error',
-        message: err?.message || 'A technical issue occurred. Please try again later.',
-        type: 'error',
-        onClose: closeAndReset
+        message: err?.message || 'Something went wrong. Please try again later.',
+        type: 'error'
       });
     } finally {
       setIsSubmitting(false);
@@ -158,8 +155,8 @@ const Submit: React.FC = () => {
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center p-8 border border-white/10 rounded-[2rem] bg-white/5 backdrop-blur-md max-w-sm">
           <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-white">ACCESS DENIED</h2>
-          <p className="text-gray-400 mt-2 mb-4">Please log in through the Pi Browser to contribute links.</p>
+          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Login Required</h2>
+          <p className="text-gray-400 mt-2 mb-4">Please connect your Pi wallet in the navbar to start sharing links.</p>
         </div>
       </div>
     );
@@ -181,26 +178,26 @@ const Submit: React.FC = () => {
               )}
             </div>
             <h3 className="text-2xl font-black text-white mb-3 uppercase tracking-tighter">
-              {paymentStatus === 'pending_payment' ? 'Opening Pi Wallet...' : 'Syncing Data...'}
+              {paymentStatus === 'pending_payment' ? 'Authorizing Payment...' : 'Publishing Link...'}
             </h3>
             <p className="text-gray-400 text-sm font-medium max-w-xs mx-auto">
               {paymentStatus === 'pending_payment' 
-                ? 'Please authorize the curation fee in your Pi Wallet. If the wallet doesn\'t open, verify your connection.' 
-                : 'Writing your submission to the community ledger. Please stay on this page.'}
+                ? 'Check your Pi Wallet. You must confirm the 1 Pi transaction to continue.' 
+                : 'Saving your submission to the network. Please do not close this tab.'}
             </p>
           </div>
         )}
 
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h1 className="text-3xl font-black text-white tracking-tight">{isEditMode ? 'Edit Link' : 'Submit Link'}</h1>
-            <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2">Community Curation Platform</p>
+            <h1 className="text-3xl font-black text-white leading-none">{isEditMode ? 'Edit Content' : 'Share Link'}</h1>
+            <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em] mt-3">Community Link Curation</p>
           </div>
           {!isEditMode && (
             <div className={`border rounded-2xl px-5 py-2.5 flex items-center gap-2 ${isAdmin ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-purple-500/10 border-purple-500/20'}`}>
               {isAdmin ? <ShieldCheck className="text-emerald-400 w-4 h-4" /> : <Wallet className="text-purple-400 w-4 h-4" />}
               <span className={`font-black text-[11px] uppercase tracking-widest ${isAdmin ? 'text-emerald-400' : 'text-purple-400'}`}>
-                {isAdmin ? 'Admin Override: Free' : 'Fee: 1 Pi'}
+                {isAdmin ? 'Admin: Free' : 'Fee: 1 Pi'}
               </span>
             </div>
           )}
@@ -214,11 +211,11 @@ const Submit: React.FC = () => {
               required 
               value={url} 
               onChange={handleUrlChange} 
-              placeholder="https://example.com" 
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-purple-500 transition-all placeholder:text-gray-700 shadow-inner" 
+              placeholder="https://..." 
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" 
             />
             <div className="flex items-center gap-2 mt-2 ml-1">
-              <span className="text-[9px] text-gray-600 uppercase font-black tracking-widest">Category:</span>
+              <span className="text-[9px] text-gray-600 uppercase font-black tracking-widest">Type:</span>
               <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${detectedCategory !== 'other' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'bg-white/5 text-gray-600 border-white/10'}`}>
                 {detectedCategory}
               </span>
@@ -226,15 +223,15 @@ const Submit: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            <label className="text-[11px] font-black uppercase tracking-widest text-gray-500 ml-1">Display Title</label>
+            <label className="text-[11px] font-black uppercase tracking-widest text-gray-500 ml-1">Title</label>
             <input 
               type="text" 
               required 
               value={title} 
               onChange={(e) => setTitle(e.target.value)} 
-              placeholder="What is this link about?" 
+              placeholder="Give your link a name" 
               maxLength={60} 
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-purple-500 transition-all placeholder:text-gray-700 shadow-inner" 
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-purple-500 transition shadow-inner" 
             />
           </div>
 
@@ -244,10 +241,10 @@ const Submit: React.FC = () => {
               required 
               value={description} 
               onChange={(e) => setDescription(e.target.value)} 
-              placeholder="Add some context for other Pioneers." 
+              placeholder="Why should Pioneers visit this link?" 
               rows={4} 
               maxLength={200} 
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-purple-500 transition-all resize-none placeholder:text-gray-700 shadow-inner" 
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-purple-500 transition resize-none shadow-inner" 
             />
           </div>
           
@@ -255,7 +252,7 @@ const Submit: React.FC = () => {
             <div className="p-5 bg-yellow-500/5 border border-yellow-500/10 rounded-[2rem] flex gap-4">
               <AlertCircle size={20} className="text-yellow-500/40 shrink-0" />
               <p className="text-[11px] text-yellow-500/60 leading-relaxed font-bold uppercase tracking-tight">
-                Standard Pioneers are charged 1 Pi to publish new content. This keeps the feed high-quality and free of spam.
+                Standard users are charged a 1 Pi curation fee. This helps maintain a high-quality feed and prevents automated spam.
               </p>
             </div>
           )}
@@ -263,14 +260,14 @@ const Submit: React.FC = () => {
           <button 
             type="submit" 
             disabled={isSubmitting} 
-            className={`w-full py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all shadow-2xl ${isSubmitting ? 'bg-gray-800 cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.01] active:scale-95 shadow-purple-900/30 text-white'}`}
+            className={`w-full py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition shadow-2xl ${isSubmitting ? 'bg-gray-800 cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.01] active:scale-95 shadow-purple-900/30'}`}
           >
             {isSubmitting ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
+              <><Loader2 className="w-5 h-5 animate-spin" /> Processing</>
             ) : (
               <>
-                {isEditMode ? <Save className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
-                {isEditMode ? 'Update Entry' : isAdmin ? 'Publish Now' : 'Pay 1 Pi & Publish'}
+                {isEditMode ? <Save className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                {isEditMode ? 'Save Changes' : isAdmin ? 'Publish Now (Admin)' : 'Pay 1 Pi & Publish'}
               </>
             )}
           </button>
@@ -280,16 +277,12 @@ const Submit: React.FC = () => {
       <Modal 
         isOpen={modal.isOpen}
         onClose={() => {
-          if (modal.onClose) {
-            modal.onClose();
-          } else {
-            closeAndReset();
-          }
+          setModal(prev => ({ ...prev, isOpen: false }));
+          if (modal.onClose) modal.onClose();
         }}
         type={modal.type as any}
         title={modal.title}
         message={modal.message}
-        confirmText="Acknowledge"
       />
     </div>
   );
