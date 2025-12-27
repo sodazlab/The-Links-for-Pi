@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../services/authContext';
 import { db } from '../services/db';
 import { PiService } from '../services/pi';
-import { Loader2, Wallet, Play, Instagram, FileText, Link as LinkIcon, AtSign, ChevronDown, Type, AlignLeft, Globe, AlertTriangle } from 'lucide-react';
+import { Loader2, Wallet, Play, Instagram, FileText, Link as LinkIcon, AtSign, ChevronDown, Type, AlignLeft, Globe, AlertTriangle, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { PostCategory, Post } from '../types';
 import Modal from '../components/Modal';
 
@@ -129,8 +129,9 @@ const Submit: React.FC = () => {
 
         setModal({
           isOpen: true,
-          title: 'Success!',
-          message: 'Your link has been submitted successfully.',
+          title: 'Submission Received!',
+          // Updated success message with English explanation about admin review
+          message: 'Your link has been submitted successfully. It will be published after admin review.',
           type: 'success',
           onClose: () => {
             navigate('/');
@@ -175,7 +176,7 @@ const Submit: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
-      <div className="bg-[#16161e] border border-white/10 rounded-[2rem] p-6 md:p-10 shadow-2xl relative overflow-hidden">
+      <div className="bg-[#16161e] border border-white/10 rounded-[2rem] p-6 md:p-10 shadow-2xl relative overflow-hidden mb-10">
         
         {/* Loading Overlay */}
         {isSubmitting && (
@@ -304,6 +305,40 @@ const Submit: React.FC = () => {
             {isSubmitting ? 'Processing...' : isEditMode ? 'Update Link' : 'Pay 1 Pi & Submit'}
           </button>
         </form>
+      </div>
+
+      {/* Submission Guidelines & Warning Section */}
+      <div className="border border-orange-500/20 bg-orange-500/5 rounded-[2rem] p-6 md:p-8">
+        <h3 className="flex items-center gap-2 text-orange-400 font-bold text-sm uppercase tracking-widest mb-4">
+          <ShieldAlert size={18} />
+          Submission Policy
+        </h3>
+        <ul className="space-y-4 text-xs md:text-sm text-gray-400 font-medium leading-relaxed">
+          <li className="flex gap-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></span>
+            <span>
+              <strong className="text-gray-200">Anti-Spam Fee:</strong> A fee of 1 Pi is required for every submission to maintain high-quality content and prevent spam.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></span>
+            <span>
+              <strong className="text-gray-200">Admin Approval:</strong> Your post will not appear immediately. It will be published only after passing a manual review by our moderation team.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></span>
+            <span>
+              <strong className="text-gray-200">Content Quality:</strong> Links must be helpful to Pioneers and relevant to the Pi Network ecosystem. Purely promotional content, scams, or irrelevant links will be automatically deleted.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0 animate-pulse"></span>
+            <span className="text-red-400/90">
+              <strong className="text-red-400">NO REFUNDS:</strong> If your post is rejected due to violation of these guidelines, the 1 Pi fee will NOT be refunded. Please double-check your content suitability before paying.
+            </span>
+          </li>
+        </ul>
       </div>
 
       <Modal isOpen={modal.isOpen} onClose={() => { setModal(prev => ({ ...prev, isOpen: false })); if(modal.onClose) modal.onClose(); }} type={modal.type as any} title={modal.title} message={modal.message} />
