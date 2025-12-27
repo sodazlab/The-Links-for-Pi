@@ -2,6 +2,7 @@ import React from 'react';
 import PostCard from '../pages/PostCard';
 import { Post } from '../types';
 import { Trophy } from 'lucide-react';
+import { useLanguage } from '../services/languageContext';
 
 interface HorizontalRailProps {
   title: string;
@@ -9,6 +10,7 @@ interface HorizontalRailProps {
 }
 
 const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
+  const { t } = useLanguage();
   return (
     <div className="w-full border-t border-b border-white/5 bg-white/[0.02]">
       <div className="max-w-7xl mx-auto py-8">
@@ -16,9 +18,9 @@ const HorizontalRail: React.FC<HorizontalRailProps> = ({ title, posts }) => {
         <div className="flex items-center justify-between px-6 md:px-8 mb-4">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Trophy className="text-yellow-500 w-5 h-5" />
-            {title}
+            {t('home.hall_of_fame')}
           </h2>
-          <span className="text-xs text-purple-400 font-semibold cursor-pointer hover:text-purple-300">VIEW ALL</span>
+          <span className="text-xs text-purple-400 font-semibold cursor-pointer hover:text-purple-300">{t('home.view_all')}</span>
         </div>
         
         <div className="relative group w-full">

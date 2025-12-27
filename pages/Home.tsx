@@ -4,6 +4,7 @@ import HorizontalRail from '../components/HorizontalRail';
 import MasonryGrid from '../components/MasonryGrid';
 import { db } from '../services/db';
 import { Post, PostCategory } from '../types';
+import { useLanguage } from '../services/languageContext';
 import { Loader2, Grid, Play, Instagram, FileText, Link as LinkIcon, Layers, AtSign } from 'lucide-react';
 
 // Custom X Logo for Filter Bar
@@ -19,20 +20,21 @@ const XLogoIcon = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
-const CATEGORIES: { id: PostCategory | 'all'; label: string; icon: React.ElementType }[] = [
-  { id: 'all', label: 'All', icon: Grid },
-  { id: 'youtube', label: 'YouTube', icon: Play },
-  { id: 'x', label: 'X', icon: XLogoIcon },
-  { id: 'threads', label: 'Threads', icon: AtSign },
-  { id: 'instagram', label: 'Instagram', icon: Instagram },
-  { id: 'article', label: 'Articles', icon: FileText },
-  { id: 'other', label: 'Other', icon: LinkIcon },
-];
-
 const Home: React.FC = () => {
+  const { t } = useLanguage();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<PostCategory | 'all'>('all');
+
+  const CATEGORIES: { id: PostCategory | 'all'; label: string; icon: React.ElementType }[] = [
+    { id: 'all', label: t('home.cats.all'), icon: Grid },
+    { id: 'youtube', label: 'YouTube', icon: Play },
+    { id: 'x', label: 'X', icon: XLogoIcon },
+    { id: 'threads', label: 'Threads', icon: AtSign },
+    { id: 'instagram', label: 'Instagram', icon: Instagram },
+    { id: 'article', label: t('home.cats.article'), icon: FileText },
+    { id: 'other', label: t('home.cats.other'), icon: LinkIcon },
+  ];
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -97,13 +99,13 @@ const Home: React.FC = () => {
       {filteredPosts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in-up">
           <Layers className="w-16 h-16 text-gray-600 mb-4" />
-          <h3 className="text-xl font-bold text-white">No posts found</h3>
-          <p className="text-gray-400 mt-2">There are no {activeCategory !== 'all' ? activeCategory : ''} posts yet.</p>
+          <h3 className="text-xl font-bold text-white">{t('home.no_posts')}</h3>
+          <p className="text-gray-400 mt-2">{t('home.no_posts_desc')}</p>
           <button 
             onClick={() => setActiveCategory('all')}
             className="mt-6 px-6 py-2 bg-purple-600 rounded-lg text-white font-medium hover:bg-purple-700 transition"
           >
-            Clear Filter
+            {t('home.clear_filter')}
           </button>
         </div>
       ) : (
@@ -113,7 +115,7 @@ const Home: React.FC = () => {
           </section>
           
           <section className="mt-8 animate-fade-in-up delay-100">
-            <HorizontalRail title="Hall of Fame" posts={famePosts} />
+            <HorizontalRail title="" posts={famePosts} />
           </section>
           
           <section className="mt-8 animate-fade-in-up delay-200">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../services/authContext';
+import { useLanguage } from '../services/languageContext';
 import { db } from '../services/db';
 import { PiService } from '../services/pi';
 import { Loader2, Wallet, Play, Instagram, FileText, Link as LinkIcon, AtSign, ChevronDown, Type, AlignLeft, Globe, AlertTriangle, ShieldAlert, CheckCircle2 } from 'lucide-react';
@@ -20,17 +21,9 @@ const XLogoIcon = ({ size = 14, className }: { size?: number, className?: string
   </svg>
 );
 
-const CATEGORY_OPTIONS: { id: PostCategory; label: string; icon: React.ElementType }[] = [
-  { id: 'youtube', label: 'YouTube', icon: Play },
-  { id: 'x', label: 'X (Twitter)', icon: XLogoIcon },
-  { id: 'threads', label: 'Threads', icon: AtSign },
-  { id: 'instagram', label: 'Instagram', icon: Instagram },
-  { id: 'article', label: 'Article / Blog', icon: FileText },
-  { id: 'other', label: 'Other Website', icon: LinkIcon },
-];
-
 const Submit: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -44,6 +37,15 @@ const Submit: React.FC = () => {
   const [detectedCategory, setDetectedCategory] = useState<PostCategory>('other');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending_payment' | 'saving'>('idle');
+
+  const CATEGORY_OPTIONS: { id: PostCategory; label: string; icon: React.ElementType }[] = [
+    { id: 'youtube', label: 'YouTube', icon: Play },
+    { id: 'x', label: 'X (Twitter)', icon: XLogoIcon },
+    { id: 'threads', label: 'Threads', icon: AtSign },
+    { id: 'instagram', label: 'Instagram', icon: Instagram },
+    { id: 'article', label: t('home.cats.article'), icon: FileText },
+    { id: 'other', label: t('home.cats.other'), icon: LinkIcon },
+  ];
 
   const [modal, setModal] = useState<{
     isOpen: boolean;
@@ -159,13 +161,13 @@ const Submit: React.FC = () => {
         <div className="p-4 bg-white/5 rounded-full mb-4">
           <AlertTriangle className="w-8 h-8 text-yellow-500" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Authentication Required</h2>
-        <p className="text-gray-400 mb-6 text-sm">Please connect your wallet to submit or edit links.</p>
+        <h2 className="text-xl font-bold text-white mb-2">{t('submit.auth_required')}</h2>
+        <p className="text-gray-400 mb-6 text-sm">{t('submit.auth_desc')}</p>
         <button 
           onClick={() => navigate('/')}
           className="px-6 py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition border border-white/10"
         >
-          Return to Home
+          {t('submit.return_home')}
         </button>
       </div>
     );
@@ -203,13 +205,13 @@ const Submit: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 border-b border-white/5 pb-6">
           <div>
-            <h1 className="text-2xl font-black text-white">{isEditMode ? 'Edit Link' : 'Submit Link'}</h1>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Share with the Pi Community</p>
+            <h1 className="text-2xl font-black text-white">{isEditMode ? t('submit.title_edit') : t('submit.title_new')}</h1>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">{t('submit.subtitle')}</p>
           </div>
           {!isEditMode && !isAdmin && (
              <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-2 flex items-center gap-2 self-start md:self-auto">
                 <Wallet className="text-purple-400 w-4 h-4" />
-                <span className="font-black text-[10px] uppercase text-purple-400 tracking-wider">Fee: 1 Pi</span>
+                <span className="font-black text-[10px] uppercase text-purple-400 tracking-wider">{t('submit.fee')}</span>
              </div>
           )}
         </div>
@@ -218,8 +220,8 @@ const Submit: React.FC = () => {
         <div className="mb-8 bg-yellow-500/5 border border-yellow-500/20 rounded-2xl p-3 flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
           <div className="text-xs text-yellow-200/80 leading-tight">
-            <span className="font-black text-yellow-500 uppercase tracking-wider text-[10px] mr-1">Important:</span>
-            Read the <strong className="text-yellow-100">Submission Policy</strong> below. Invalid posts are rejected without refund.
+            <span className="font-black text-yellow-500 uppercase tracking-wider text-[10px] mr-1">{t('submit.warn_imp')}</span>
+            {t('submit.warn_text')}
           </div>
         </div>
 
@@ -227,7 +229,7 @@ const Submit: React.FC = () => {
           
           {/* URL Input */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Link URL</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">{t('submit.link_url')}</label>
             <div className="relative group">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors">
                 <Globe size={18} />
@@ -245,7 +247,7 @@ const Submit: React.FC = () => {
 
           {/* Category Select (Combo Box) */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Category</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">{t('submit.category')}</label>
             <div className="relative group">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors pointer-events-none z-10">
                 <SelectedIcon size={18} />
@@ -271,7 +273,7 @@ const Submit: React.FC = () => {
 
           {/* Title Input */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Title</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">{t('submit.post_title')}</label>
             <div className="relative group">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors">
                 <Type size={18} />
@@ -281,7 +283,7 @@ const Submit: React.FC = () => {
                 required 
                 value={title} 
                 onChange={(e) => setTitle(e.target.value)} 
-                placeholder="Enter a catchy title" 
+                placeholder={t('submit.ph_title')} 
                 className="w-full bg-black/40 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-white text-sm focus:outline-none focus:border-purple-500 focus:bg-white/5 transition placeholder:text-gray-600" 
               />
             </div>
@@ -289,7 +291,7 @@ const Submit: React.FC = () => {
 
           {/* Description Input */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Description</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">{t('submit.description')}</label>
             <div className="relative group">
               <div className="absolute left-4 top-6 text-gray-500 group-focus-within:text-purple-400 transition-colors">
                 <AlignLeft size={18} />
@@ -298,7 +300,7 @@ const Submit: React.FC = () => {
                 required 
                 value={description} 
                 onChange={(e) => setDescription(e.target.value)} 
-                placeholder="What is this link about?" 
+                placeholder={t('submit.ph_desc')} 
                 rows={4} 
                 className="w-full bg-black/40 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-white text-sm focus:outline-none focus:border-purple-500 focus:bg-white/5 transition resize-none placeholder:text-gray-600" 
               />
@@ -311,7 +313,7 @@ const Submit: React.FC = () => {
             disabled={isSubmitting} 
             className="w-full py-5 mt-4 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-xs uppercase tracking-[0.2em] hover:scale-[1.01] active:scale-95 transition-all shadow-xl shadow-purple-900/20 disabled:opacity-50 disabled:hover:scale-100"
           >
-            {isSubmitting ? 'Processing...' : isEditMode ? 'Update Link' : 'Pay 1 Pi & Submit'}
+            {isSubmitting ? t('submit.btn_processing') : isEditMode ? t('submit.btn_update') : t('submit.btn_pay')}
           </button>
         </form>
       </div>
@@ -320,31 +322,31 @@ const Submit: React.FC = () => {
       <div className="border border-orange-500/20 bg-orange-500/5 rounded-[2rem] p-6 md:p-8">
         <h3 className="flex items-center gap-2 text-orange-400 font-bold text-sm uppercase tracking-widest mb-4">
           <ShieldAlert size={18} />
-          Submission Policy
+          {t('submit.policy_title')}
         </h3>
         <ul className="space-y-4 text-xs md:text-sm text-gray-400 font-medium leading-relaxed">
           <li className="flex gap-3">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></span>
             <span>
-              <strong className="text-gray-200">Anti-Spam Fee:</strong> A fee of 1 Pi is required for every submission to maintain high-quality content and prevent spam.
+              <strong className="text-gray-200">{t('submit.policy_spam')}</strong>
             </span>
           </li>
           <li className="flex gap-3">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></span>
             <span>
-              <strong className="text-gray-200">Admin Approval:</strong> Your post will not appear immediately. It will be published only after passing a manual review by our moderation team.
+              <strong className="text-gray-200">{t('submit.policy_admin')}</strong>
             </span>
           </li>
           <li className="flex gap-3">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></span>
             <span>
-              <strong className="text-gray-200">Content Quality:</strong> Links must be helpful to Pioneers and relevant to the Pi Network ecosystem. Purely promotional content, scams, or irrelevant links will be automatically deleted.
+              <strong className="text-gray-200">{t('submit.policy_content')}</strong>
             </span>
           </li>
           <li className="flex gap-3">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0 animate-pulse"></span>
             <span className="text-red-400/90">
-              <strong className="text-red-400">NO REFUNDS:</strong> If your post is rejected due to violation of these guidelines, the 1 Pi fee will NOT be refunded. Please double-check your content suitability before paying.
+              <strong className="text-red-400">{t('submit.policy_refund')}</strong>
             </span>
           </li>
         </ul>

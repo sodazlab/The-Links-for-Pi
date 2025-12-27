@@ -4,6 +4,7 @@ import { Play, Instagram, FileText, Link as LinkIcon, Heart, Eye, AtSign, Pencil
 import { Post } from '../types';
 import { db } from '../services/db';
 import { useAuth } from '../services/authContext';
+import { useLanguage } from '../services/languageContext';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
 
@@ -21,6 +22,7 @@ const XLogo = ({ className }: { className?: string }) => (
 
 const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', className = '' }) => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
   const [likes, setLikes] = useState(post.likesCount);
@@ -58,7 +60,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
       setModalConfig({
         isOpen: true,
         title: 'Community Interaction',
-        message: 'Please connect your Pi wallet to like posts and engage with the community.',
+        message: t('card.login_req'),
         type: 'warning',
         confirmText: 'OK'
       });
@@ -96,11 +98,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     
     setModalConfig({
       isOpen: true,
-      title: 'Are you sure?',
-      message: 'This link will be permanently removed from the community feed.',
+      title: t('card.delete_confirm'),
+      message: t('card.delete_msg'),
       type: 'confirm',
       showCancel: true,
-      confirmText: 'Delete Now',
+      confirmText: t('card.delete_btn'),
       onConfirm: async () => {
         const { error } = await db.deletePost(post.id);
         if (error) {

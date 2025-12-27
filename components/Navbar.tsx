@@ -1,12 +1,27 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../services/authContext';
+import { useLanguage } from '../services/languageContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { PlusCircle, LogOut, Shield, User as UserIcon } from 'lucide-react';
+import { PlusCircle, LogOut, Shield, Globe, ChevronDown } from 'lucide-react';
+import { LANGUAGES, LanguageCode } from '../services/translations';
 
 const Navbar: React.FC = () => {
   const { user, loginAsPioneer, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const langMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setLangMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleNavHome = (e: React.MouseEvent) => {
     if (location.pathname === '/') {
@@ -33,19 +48,46 @@ const Navbar: React.FC = () => {
         </button>
 
         {/* Middle Nav */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <button 
             onClick={handleNavHome} 
             className={`text-sm font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-colors ${location.pathname === '/' ? 'text-white' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
           >
-            Discover
+            {t('nav.discover')}
           </button>
+          
+          {/* Language Selector */}
+          <div className="relative" ref={langMenuRef}>
+            <button 
+              onClick={() => setLangMenuOpen(!langMenuOpen)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors text-gray-500 hover:text-white"
+            >
+              <Globe size={14} />
+              <span className="text-xs font-black uppercase tracking-wider">{LANGUAGES.find(l => l.code === language)?.label}</span>
+              <ChevronDown size={10} className={`transition-transform ${langMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {langMenuOpen && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-32 bg-[#16161e] border border-white/10 rounded-xl shadow-xl overflow-hidden py-1 z-50">
+                {LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => { setLanguage(lang.code); setLangMenuOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 transition-colors ${language === lang.code ? 'text-purple-400 bg-purple-500/10' : 'text-gray-400'}`}
+                  >
+                    {lang.label} <span className="text-[9px] font-normal text-gray-600 ml-1 uppercase">{lang.code}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {user?.role === 'admin' && (
             <Link 
               to="/admin" 
               className={`text-sm font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-colors ${location.pathname === '/admin' ? 'text-white' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
             >
-              Moderation
+              {t('nav.admin')}
             </Link>
           )}
         </div>
@@ -57,7 +99,7 @@ const Navbar: React.FC = () => {
                 onClick={() => loginAsPioneer()}
                 className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition shadow-lg shadow-purple-900/20 active:scale-95"
                >
-                 Connect Wallet
+                 {t('nav.connect')}
                </button>
                <button 
                 onClick={handleAdminLogin}

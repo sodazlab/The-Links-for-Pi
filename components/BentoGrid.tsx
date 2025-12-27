@@ -1,12 +1,15 @@
 import React from 'react';
 import PostCard from '../pages/PostCard';
 import { Post } from '../types';
+import { useLanguage } from '../services/languageContext';
 
 interface BentoGridProps {
   posts: Post[];
 }
 
 const BentoGrid: React.FC<BentoGridProps> = ({ posts }) => {
+  const { t } = useLanguage();
+  
   if (posts.length === 0) return null;
 
   // We assume we have at least 4-5 posts for the bento grid
@@ -17,7 +20,7 @@ const BentoGrid: React.FC<BentoGridProps> = ({ posts }) => {
     <div className="w-full max-w-7xl mx-auto p-4 md:p-6">
       <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
         <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-          Weekly Best
+          {t('home.weekly_best')}
         </span>
       </h2>
       
