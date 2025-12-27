@@ -3,9 +3,31 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../services/authContext';
 import { db } from '../services/db';
 import { PiService } from '../services/pi';
-import { CheckCircle, AlertCircle, Loader2, Save, Wallet, ShieldCheck } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Save, Wallet, ShieldCheck, Play, Instagram, FileText, Link as LinkIcon, AtSign } from 'lucide-react';
 import { PostCategory, Post } from '../types';
 import Modal from '../components/Modal';
+
+// Custom X Logo
+const XLogoIcon = ({ size = 14 }: { size?: number }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    aria-hidden="true" 
+    width={size} 
+    height={size} 
+    className="fill-current"
+  >
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+const CATEGORY_OPTIONS: { id: PostCategory; label: string; icon: React.ElementType }[] = [
+  { id: 'youtube', label: 'YouTube', icon: Play },
+  { id: 'x', label: 'X', icon: XLogoIcon },
+  { id: 'threads', label: 'Threads', icon: AtSign },
+  { id: 'instagram', label: 'Instagram', icon: Instagram },
+  { id: 'article', label: 'Article', icon: FileText },
+  { id: 'other', label: 'Other', icon: LinkIcon },
+];
 
 const Submit: React.FC = () => {
   const { user } = useAuth();
@@ -49,9 +71,19 @@ const Submit: React.FC = () => {
     const val = e.target.value;
     setUrl(val);
     const lowerVal = val.toLowerCase();
-    if (lowerVal.includes('youtube.com')) setDetectedCategory('youtube');
-    else if (lowerVal.includes('twitter.com') || lowerVal.includes('x.com')) setDetectedCategory('x');
-    else setDetectedCategory('other');
+    
+    // Improved Auto-detection Logic
+    if (lowerVal.includes('youtube.com') || lowerVal.includes('youtu.be')) {
+      setDetectedCategory('youtube');
+    } else if (lowerVal.includes('twitter.com') || lowerVal.includes('x.com')) {
+      setDetectedCategory('x');
+    } else if (lowerVal.includes('instagram.com')) {
+      setDetectedCategory('instagram');
+    } else if (lowerVal.includes('threads.net')) {
+      setDetectedCategory('threads');
+    } else {
+      setDetectedCategory('other');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -167,6 +199,34 @@ const Submit: React.FC = () => {
             <label className="text-[11px] font-black uppercase tracking-widest text-gray-500">URL</label>
             <input type="url" required value={url} onChange={handleUrlChange} placeholder="https://..." className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-purple-500 transition" />
           </div>
+
+          <div className="space-y-3">
+            <label className="text-[11px] font-black uppercase tracking-widest text-gray-500">Category</label>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORY_OPTIONS.map((cat) => {
+                const Icon = cat.icon;
+                const isSelected = detectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setDetectedCategory(cat.id)}
+                    className={`
+                      flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold transition-all border
+                      ${isSelected 
+                        ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-900/20' 
+                        : 'bg-black/40 border-white/10 text-gray-400 hover:bg-white/5 hover:text-white'
+                      }
+                    `}
+                  >
+                    <Icon size={14} />
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="space-y-3">
             <label className="text-[11px] font-black uppercase tracking-widest text-gray-500">Title</label>
             <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-purple-500 transition" />
