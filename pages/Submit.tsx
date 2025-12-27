@@ -201,7 +201,7 @@ const Submit: React.FC = () => {
         )}
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 border-b border-white/5 pb-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 border-b border-white/5 pb-6">
           <div>
             <h1 className="text-2xl font-black text-white">{isEditMode ? 'Edit Link' : 'Submit Link'}</h1>
             <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Share with the Pi Community</p>
@@ -212,6 +212,15 @@ const Submit: React.FC = () => {
                 <span className="font-black text-[10px] uppercase text-purple-400 tracking-wider">Fee: 1 Pi</span>
              </div>
           )}
+        </div>
+
+        {/* Top Warning Banner */}
+        <div className="mb-8 bg-yellow-500/5 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-yellow-200/80 leading-relaxed">
+            <strong className="text-yellow-500 block mb-1 uppercase tracking-wider text-[10px]">Important</strong>
+            Please carefully review the <strong className="text-yellow-100">Submission Policy</strong> at the bottom of this page. Submissions violating these rules will be rejected without refund.
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">

@@ -70,15 +70,10 @@ const Navbar: React.FC = () => {
              </div>
           ) : (
             <div className="flex items-center gap-1 md:gap-3">
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mr-1">
-                <img src={user.avatarUrl} alt="User" className="w-6 h-6 rounded-full" />
-                <span className="text-xs font-medium text-gray-300 truncate max-w-[100px]">{user.username}</span>
-                {user.role === 'admin' && <Shield size={12} className="text-purple-400" />}
-              </div>
-              
-              {/* Mobile Avatar (Icon only) */}
-              <div className="md:hidden w-8 h-8 rounded-full overflow-hidden border border-white/10 mr-1">
-                <img src={user.avatarUrl} alt="User" className="w-full h-full object-cover" />
+              <div className="flex items-center gap-2 px-1 md:px-3 py-1.5 rounded-full md:bg-white/5 md:border border-white/10 mr-1">
+                <img src={user.avatarUrl} alt="User" className="w-6 h-6 rounded-full border border-white/10" />
+                <span className="text-xs font-medium text-gray-300 truncate max-w-[70px] md:max-w-[100px]">{user.username}</span>
+                {user.role === 'admin' && <Shield size={12} className="text-purple-400 flex-shrink-0" />}
               </div>
               
               <Link 
