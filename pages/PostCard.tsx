@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Instagram, FileText, Link as LinkIcon, Heart, Eye, AtSign, Pencil, Trash2 } from 'lucide-react';
+import { Play, Instagram, FileText, Link as LinkIcon, Heart, Eye, AtSign, Pencil, Trash2, Share2 } from 'lucide-react';
 import { Post } from '../types';
 import { db } from '../services/db';
 import { useAuth } from '../services/authContext';
@@ -78,6 +78,38 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     }
   };
 
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const shareData = {
+      title: post.title,
+      text: post.description,
+      url: post.url,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(post.url);
+        setModalConfig({
+          isOpen: true,
+          title: t('card.share_title'),
+          message: t('card.share_copied'),
+          type: 'success',
+          confirmText: 'OK'
+        });
+      } catch (err) {
+        console.error('Failed to copy', err);
+      }
+    }
+  };
+
   const handleCardClick = () => {
     if (!hasViewed) {
       db.incrementView(post.id);
@@ -147,7 +179,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         whileHover={{ scale: 1.02 }}
-        className={`relative group overflow-hidden rounded-3xl border border-white/10 shadow-lg ${className} bg-[#1a1a1a] flex flex-col`}
+        className={`relative group overflow-hidden rounded-3xl border border-white/10 shadow-lg ${className} bg-[#1a1a20] flex flex-col`}
       >
         <a href={post.url} target="_blank" rel="noreferrer" onClick={handleCardClick} className="flex-grow flex flex-col p-5 relative">
           <div className={`absolute inset-0 bg-gradient-to-br ${getGradient()} opacity-60 transition-opacity group-hover:opacity-80`} />
@@ -160,7 +192,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
                 <div className="p-2.5 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
                   {getIcon()}
                 </div>
-                {/* Language Badge */}
                 {post.language && (
                   <div className="flex items-center justify-center p-2.5 h-[38px] min-w-[38px] rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl text-[10px] font-black uppercase tracking-wider text-gray-300">
                     {post.language}
@@ -200,15 +231,24 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
                 {post.description}
               </p>
               
-              <div className="flex items-center space-x-4 pt-3 mt-3 border-t border-white/5">
-                <button onClick={toggleLike} className={`flex items-center space-x-1.5 text-xs transition-all ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-400'}`}>
-                  <Heart size={14} className={isLiked ? 'fill-current' : ''} />
-                  <span className="font-black">{likes}</span>
-                </button>
-                <div className="flex items-center space-x-1.5 text-gray-400 text-xs font-black">
-                  <Eye size={14} />
-                  <span>{views}</span>
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/5">
+                <div className="flex items-center space-x-4">
+                  <button onClick={toggleLike} className={`flex items-center space-x-1.5 text-xs transition-all ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-400'}`}>
+                    <Heart size={14} className={isLiked ? 'fill-current' : ''} />
+                    <span className="font-black">{likes}</span>
+                  </button>
+                  <div className="flex items-center space-x-1.5 text-gray-400 text-xs font-black">
+                    <Eye size={14} />
+                    <span>{views}</span>
+                  </div>
                 </div>
+
+                <button 
+                  onClick={handleShare}
+                  className="flex items-center space-x-1.5 text-gray-400 hover:text-white transition-colors text-xs font-black p-1"
+                >
+                  <Share2 size={14} />
+                </button>
               </div>
             </div>
           </div>
