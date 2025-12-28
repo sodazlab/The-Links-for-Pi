@@ -28,7 +28,7 @@ const App: React.FC = () => {
             
             <footer className="py-10 text-center border-t border-white/5 mt-auto bg-[#0f0f12]">
               <div className="max-w-7xl mx-auto px-6">
-                <p className="text-gray-600 text-sm mb-4">© 2024 The Links. Unofficial Pi Network Community App.</p>
+                <p className="text-gray-600 text-sm mb-4">© 2025 The Links. Built for the Pi Community</p>
                 <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
                   <Link 
                     to="/privacy" 
