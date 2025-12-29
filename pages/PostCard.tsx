@@ -82,27 +82,29 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     e.preventDefault();
     e.stopPropagation();
 
+    // 공유 데이터 설정
     const shareData = {
       title: post.title,
       text: post.description,
-      url: post.url,
+      url: post.url.startsWith('http') ? post.url : window.location.origin + post.url,
     };
 
-    // Robust Web Share API check
-    // We prioritize native share menu for SNS app selection
-    if (navigator.share) {
+    // 모바일 네이티브 공유 API 호출 (기기 시스템 메뉴)
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
       try {
-        // Some browsers require direct call without async/await logic before it
         await navigator.share(shareData);
+        return; // 성공 시 종료
       } catch (err: any) {
         if (err.name !== 'AbortError') {
-          console.warn('Native share failed, falling back to clipboard.', err);
-          copyToClipboard();
+          console.warn('Share failed:', err);
+        } else {
+          return; // 사용자가 취소한 경우 종료
         }
       }
-    } else {
-      copyToClipboard();
     }
+
+    // 네이티브 공유 불가 시 (PC 브라우저 등) 클립보드 복사 실행
+    copyToClipboard();
   };
 
   const copyToClipboard = async () => {
@@ -191,11 +193,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
         whileHover={{ scale: 1.01 }}
         className={`relative group overflow-hidden rounded-[2rem] border border-white/10 shadow-lg ${className} bg-[#1a1a20] flex flex-col`}
       >
-        <a href={post.url} target="_blank" rel="noreferrer" onClick={handleCardClick} className="flex-grow flex flex-col p-4 md:p-5 lg:p-6 relative h-full">
+        <a href={post.url} target="_blank" rel="noreferrer" onClick={handleCardClick} className="flex-grow flex flex-col p-5 md:p-6 relative h-full">
           <div className={`absolute inset-0 bg-gradient-to-br ${getGradient()} opacity-60 transition-opacity group-hover:opacity-80`} />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
 
           <div className="relative z-10 flex flex-col h-full min-h-0">
+            {/* Header Icons */}
             <div className="flex justify-between items-start mb-4">
               <div className="flex gap-2">
                 <div className="p-2.5 rounded-xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
@@ -220,6 +223,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
               )}
             </div>
 
+            {/* Content Area */}
             <div className="flex flex-col flex-grow min-h-0 mb-4">
               <div className="flex items-center gap-2 mb-2">
                  <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.2em] bg-white/10 px-2 py-0.5 rounded border border-white/5">
@@ -230,7 +234,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
               
               <h3 className={`font-black text-white leading-tight drop-shadow-2xl overflow-visible whitespace-normal ${
                 variant === 'featured' 
-                  ? 'text-xl md:text-2xl mb-2' // No line-clamp for featured titles
+                  ? 'text-xl md:text-2xl mb-2' // featured는 제목을 줄이지 않음
                   : 'text-base md:text-lg line-clamp-2'
               }`}>
                 {post.title}
@@ -245,6 +249,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
               </p>
             </div>
             
+            {/* Footer Row - Fixed to bottom */}
             <div className="flex items-center justify-between pt-4 mt-auto border-t border-white/10">
               <div className="flex items-center space-x-4">
                 <button onClick={toggleLike} className={`flex items-center space-x-1.5 text-xs transition-all ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-400'}`}>
@@ -259,10 +264,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
 
               <button 
                 onClick={handleShare}
-                className="flex items-center justify-center text-gray-400 hover:text-white transition-colors p-2 bg-white/5 rounded-lg border border-white/5 hover:border-white/20"
+                className="flex items-center justify-center text-gray-400 hover:text-white transition-colors p-2.5 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 active:scale-90"
                 aria-label="Share Link"
               >
-                <Share2 size={15} />
+                <Share2 size={16} />
               </button>
             </div>
           </div>
