@@ -88,13 +88,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
       url: post.url,
     };
 
-    if (navigator.share) {
+    // Use Web Share API if available (Modern mobile browsers)
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
       try {
         await navigator.share(shareData);
-      } catch (err) {
-        console.error('Error sharing', err);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Error sharing:', err);
+        }
       }
     } else {
+      // Fallback for desktop or non-supported browsers
       try {
         await navigator.clipboard.writeText(post.url);
         setModalConfig({
@@ -178,74 +182,79 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
         layout
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        whileHover={{ scale: 1.02 }}
+        whileHover={{ scale: 1.01 }}
         className={`relative group overflow-hidden rounded-3xl border border-white/10 shadow-lg ${className} bg-[#1a1a20] flex flex-col`}
       >
-        <a href={post.url} target="_blank" rel="noreferrer" onClick={handleCardClick} className="flex-grow flex flex-col p-5 relative">
+        <a href={post.url} target="_blank" rel="noreferrer" onClick={handleCardClick} className="flex-grow flex flex-col p-4 md:p-5 relative">
           <div className={`absolute inset-0 bg-gradient-to-br ${getGradient()} opacity-60 transition-opacity group-hover:opacity-80`} />
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
 
           <div className="relative z-10 flex flex-col h-full">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex gap-2">
-                <div className="p-2.5 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex gap-1.5">
+                <div className="p-2 rounded-xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
                   {getIcon()}
                 </div>
                 {post.language && (
-                  <div className="flex items-center justify-center p-2.5 h-[38px] min-w-[38px] rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl text-[10px] font-black uppercase tracking-wider text-gray-300">
+                  <div className="flex items-center justify-center h-[34px] min-w-[34px] rounded-xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl text-[9px] font-black uppercase tracking-wider text-gray-300">
                     {post.language}
                   </div>
                 )}
               </div>
 
               {isOwner && (
-                <div className="flex gap-2">
-                  <button onClick={handleEdit} className="p-2 rounded-xl bg-black/40 hover:bg-white/10 text-white/50 hover:text-white transition backdrop-blur-md border border-white/10">
+                <div className="flex gap-1.5">
+                  <button onClick={handleEdit} className="p-2 rounded-lg bg-black/40 hover:bg-white/10 text-white/50 hover:text-white transition backdrop-blur-md border border-white/10">
                     <Pencil size={12} />
                   </button>
-                  <button onClick={handleDelete} className="p-2 rounded-xl bg-black/40 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition backdrop-blur-md border border-white/10">
+                  <button onClick={handleDelete} className="p-2 rounded-lg bg-black/40 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition backdrop-blur-md border border-white/10">
                     <Trash2 size={12} />
                   </button>
                 </div>
               )}
             </div>
 
-            <div className="mt-auto">
-              <div className="flex items-center gap-2 mb-2">
-                 <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+            <div className="mt-auto flex flex-col h-full justify-end">
+              <div className="flex items-center gap-2 mb-1.5">
+                 <span className="text-[7px] font-black text-white/60 uppercase tracking-[0.2em] bg-white/10 px-1.5 py-0.5 rounded border border-white/5">
                    {post.category}
                  </span>
-                 <span className="text-[9px] font-bold text-gray-500">@{post.username}</span>
+                 <span className="text-[9px] font-bold text-gray-400">@{post.username}</span>
               </div>
               
-              <h3 className={`font-black text-white leading-tight drop-shadow-2xl ${variant === 'featured' ? 'text-2xl md:text-3xl' : 'text-lg md:text-xl line-clamp-2'}`}>
+              <h3 className={`font-black text-white leading-tight drop-shadow-2xl ${
+                variant === 'featured' 
+                  ? 'text-xl md:text-2xl lg:text-3xl line-clamp-2 md:line-clamp-3' 
+                  : 'text-base md:text-lg line-clamp-2'
+              }`}>
                 {post.title}
               </h3>
               
-              <p className={`font-medium mt-3 line-clamp-2 leading-relaxed transition-opacity ${
+              <p className={`font-medium mt-2 line-clamp-2 leading-snug transition-opacity ${
                 variant === 'featured' 
-                  ? 'text-sm md:text-base text-gray-200 opacity-90' 
-                  : 'text-xs md:text-sm text-gray-300 opacity-80 group-hover:opacity-100'
+                  ? 'text-xs md:text-sm text-gray-300 opacity-90' 
+                  : 'text-[11px] md:text-xs text-gray-400 opacity-80 group-hover:opacity-100'
               }`}>
                 {post.description}
               </p>
               
-              <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/5">
-                <div className="flex items-center space-x-4">
-                  <button onClick={toggleLike} className={`flex items-center space-x-1.5 text-xs transition-all ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-400'}`}>
-                    <Heart size={14} className={isLiked ? 'fill-current' : ''} />
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/10">
+                <div className="flex items-center space-x-3 md:space-x-4">
+                  <button onClick={toggleLike} className={`flex items-center space-x-1 text-xs transition-all ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-400'}`}>
+                    <Heart size={13} className={isLiked ? 'fill-current' : ''} />
                     <span className="font-black">{likes}</span>
                   </button>
-                  <div className="flex items-center space-x-1.5 text-gray-400 text-xs font-black">
-                    <Eye size={14} />
+                  <div className="flex items-center space-x-1 text-gray-400 text-xs font-black">
+                    <Eye size={13} />
                     <span>{views}</span>
                   </div>
                 </div>
 
                 <button 
                   onClick={handleShare}
-                  className="flex items-center space-x-1.5 text-gray-400 hover:text-white transition-colors text-xs font-black p-1"
+                  className="flex items-center justify-center text-gray-400 hover:text-white transition-colors p-1"
+                  aria-label="Share Link"
                 >
                   <Share2 size={14} />
                 </button>
