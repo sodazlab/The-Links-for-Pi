@@ -82,20 +82,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     e.preventDefault();
     e.stopPropagation();
 
-    // Standard share data for modern browsers
     const shareData = {
       title: post.title,
-      text: `${post.title} - ${post.description}`,
+      text: post.description,
       url: post.url,
     };
 
-    // Simplified Native Share Logic for better compatibility in WebView
+    // Robust Web Share API check
+    // We prioritize native share menu for SNS app selection
     if (navigator.share) {
       try {
+        // Some browsers require direct call without async/await logic before it
         await navigator.share(shareData);
       } catch (err: any) {
-        // If the error isn't AbortError (user cancelled), fall back to copy
         if (err.name !== 'AbortError') {
+          console.warn('Native share failed, falling back to clipboard.', err);
           copyToClipboard();
         }
       }
@@ -219,7 +220,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
               )}
             </div>
 
-            <div className="flex flex-col flex-grow min-h-0">
+            <div className="flex flex-col flex-grow min-h-0 mb-4">
               <div className="flex items-center gap-2 mb-2">
                  <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.2em] bg-white/10 px-2 py-0.5 rounded border border-white/5">
                    {post.category}
@@ -227,17 +228,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
                  <span className="text-[10px] font-bold text-gray-400 truncate">@{post.username}</span>
               </div>
               
-              <h3 className={`font-black text-white leading-tight drop-shadow-2xl overflow-hidden ${
+              <h3 className={`font-black text-white leading-tight drop-shadow-2xl overflow-visible whitespace-normal ${
                 variant === 'featured' 
-                  ? 'text-xl md:text-2xl line-clamp-2 md:line-clamp-3' 
+                  ? 'text-xl md:text-2xl mb-2' // No line-clamp for featured titles
                   : 'text-base md:text-lg line-clamp-2'
               }`}>
                 {post.title}
               </h3>
               
-              <p className={`font-medium mt-2 leading-snug transition-opacity overflow-hidden ${
+              <p className={`font-medium leading-snug transition-opacity overflow-hidden ${
                 variant === 'featured' 
-                  ? 'text-xs md:text-sm text-gray-300 opacity-90 line-clamp-2 md:line-clamp-3' 
+                  ? 'text-xs md:text-sm text-gray-300 opacity-90 line-clamp-3' 
                   : 'text-[11px] md:text-xs text-gray-400 opacity-80 line-clamp-2'
               }`}>
                 {post.description}
