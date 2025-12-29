@@ -24,15 +24,15 @@ const BentoGrid: React.FC<BentoGridProps> = ({ posts }) => {
         </span>
       </h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:min-h-[560px] h-auto">
-        {/* Main Hero Card - Takes up 2x2 space on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-auto">
+        {/* 메인 Hero 카드 - 제목이 길어져도 유동적으로 늘어남 */}
         {primary && (
           <div className="col-span-1 md:col-span-2 md:row-span-2 h-auto">
-            <PostCard post={primary} variant="featured" className="h-full min-h-[380px]" />
+            <PostCard post={primary} variant="featured" className="h-full min-h-[420px]" />
           </div>
         )}
 
-        {/* Smaller Cards */}
+        {/* 일반 서브 카드들 */}
         {secondary.map((post) => (
           <div key={post.id} className="col-span-1 md:col-span-1 md:row-span-1 h-auto">
             <PostCard post={post} variant="standard" className="h-full min-h-[220px]" />

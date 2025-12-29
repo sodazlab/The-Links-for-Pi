@@ -82,29 +82,31 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
     e.preventDefault();
     e.stopPropagation();
 
-    // 공유 데이터 설정
+    const fullUrl = post.url.startsWith('http') ? post.url : window.location.origin + post.url;
+
     const shareData = {
       title: post.title,
-      text: post.description,
-      url: post.url.startsWith('http') ? post.url : window.location.origin + post.url,
+      text: `${post.title} - ${post.description.slice(0, 50)}`,
+      url: fullUrl,
     };
 
-    // 모바일 네이티브 공유 API 호출 (기기 시스템 메뉴)
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+    // 네이티브 공유 API (navigator.share) 호출 시도
+    if (navigator.share) {
       try {
+        // 비동기 처리가 너무 길어지면 브라우저가 사용자 액션이 아니라고 판단해 차단할 수 있음
         await navigator.share(shareData);
-        return; // 성공 시 종료
+        return; // 성공 시 여기서 종료
       } catch (err: any) {
+        // AbortError(사용자 취소)가 아닐 때만 폴백 로직 실행
         if (err.name !== 'AbortError') {
-          console.warn('Share failed:', err);
-        } else {
-          return; // 사용자가 취소한 경우 종료
+          console.warn('Native share failed, fallback to clipboard:', err);
+          copyToClipboard();
         }
       }
+    } else {
+      // API 자체가 없는 경우 (PC 등) 바로 폴백
+      copyToClipboard();
     }
-
-    // 네이티브 공유 불가 시 (PC 브라우저 등) 클립보드 복사 실행
-    copyToClipboard();
   };
 
   const copyToClipboard = async () => {
@@ -198,7 +200,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
 
           <div className="relative z-10 flex flex-col h-full min-h-0">
-            {/* Header Icons */}
+            {/* 상단 헤더 */}
             <div className="flex justify-between items-start mb-4">
               <div className="flex gap-2">
                 <div className="p-2.5 rounded-xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
@@ -223,7 +225,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
               )}
             </div>
 
-            {/* Content Area */}
+            {/* 본문 영역 */}
             <div className="flex flex-col flex-grow min-h-0 mb-4">
               <div className="flex items-center gap-2 mb-2">
                  <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.2em] bg-white/10 px-2 py-0.5 rounded border border-white/5">
@@ -234,22 +236,22 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
               
               <h3 className={`font-black text-white leading-tight drop-shadow-2xl overflow-visible whitespace-normal ${
                 variant === 'featured' 
-                  ? 'text-xl md:text-2xl mb-2' // featured는 제목을 줄이지 않음
-                  : 'text-base md:text-lg line-clamp-2'
+                  ? 'text-xl md:text-2xl mb-2' // 주간 베스트 첫 카드는 제목을 줄이지 않음
+                  : 'text-base md:text-lg line-clamp-2' // 일반 카드는 2줄 제한
               }`}>
                 {post.title}
               </h3>
               
               <p className={`font-medium leading-snug transition-opacity overflow-hidden ${
                 variant === 'featured' 
-                  ? 'text-xs md:text-sm text-gray-300 opacity-90 line-clamp-3' 
+                  ? 'text-xs md:text-sm text-gray-300 opacity-90 line-clamp-4' 
                   : 'text-[11px] md:text-xs text-gray-400 opacity-80 line-clamp-2'
               }`}>
                 {post.description}
               </p>
             </div>
             
-            {/* Footer Row - Fixed to bottom */}
+            {/* 하단 메타 정보 - 아래쪽 고정 */}
             <div className="flex items-center justify-between pt-4 mt-auto border-t border-white/10">
               <div className="flex items-center space-x-4">
                 <button onClick={toggleLike} className={`flex items-center space-x-1.5 text-xs transition-all ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-400'}`}>
@@ -264,7 +266,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, variant = 'standard', classNa
 
               <button 
                 onClick={handleShare}
-                className="flex items-center justify-center text-gray-400 hover:text-white transition-colors p-2.5 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 active:scale-90"
+                className="flex items-center justify-center text-gray-400 hover:text-white transition-all p-2.5 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 active:scale-90"
                 aria-label="Share Link"
               >
                 <Share2 size={16} />
